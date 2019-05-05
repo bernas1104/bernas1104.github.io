@@ -1,0 +1,25 @@
+/*
+ * Cascade Style Sheet for my Github page
+ * @author: Bernardo Costa Nascimento
+ */
+body{
+    background-color: rgb(3, 4, 6);
+}
+
+.main-container {
+    height: 92.5%;
+}
+
+.container{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+h1{
+    font-family: 'Press Start 2P', cursive;
+    font-size: 24px;
+    padding: 50 50 50 50;
+    background-color: rgba(111, 180, 185, 1);
+    color: rgb(229, 233, 218);
+}
