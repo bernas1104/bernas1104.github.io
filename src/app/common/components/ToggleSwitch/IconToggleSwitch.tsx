@@ -1,3 +1,4 @@
+import Icons from '../../constants/icons'
 import IconToggleSwitchProps from './interfaces/IconToggleSwitchProps'
 
 import { ToggleSwitchContainer } from './styles'
@@ -11,8 +12,8 @@ export function IconToggleSwitch({
     onToggle()
   }
 
-  const ToggledIcon = icons[0]
-  const UntoggledIcon = icons[1]
+  const ToggledIcon = Icons[icons[0]]
+  const UntoggledIcon = Icons[icons[1]]
 
   return (
     <ToggleSwitchContainer $toggled={toggled}>
