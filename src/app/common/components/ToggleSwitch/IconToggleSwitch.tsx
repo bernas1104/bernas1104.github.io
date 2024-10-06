@@ -7,19 +7,20 @@ export function IconToggleSwitch({
   toggled,
   onToggle,
   icons,
+  'data-testid': dataTestId,
 }: IconToggleSwitchProps) {
-  function handleToggle() {
-    onToggle()
-  }
-
   const ToggledIcon = Icons[icons[0]]
   const UntoggledIcon = Icons[icons[1]]
 
   return (
-    <ToggleSwitchContainer $toggled={toggled}>
-      <button type="button" onClick={() => handleToggle()}>
-        {toggled && <ToggledIcon size={16} weight="fill" />}
-        {!toggled && <UntoggledIcon size={16} weight="fill" />}
+    <ToggleSwitchContainer $toggled={toggled} data-testid={dataTestId}>
+      <button type="button" role="button" onClick={() => onToggle()}>
+        {toggled && (
+          <ToggledIcon size={16} weight="fill" data-testid="toggled-icon" />
+        )}
+        {!toggled && (
+          <UntoggledIcon size={16} weight="fill" data-testid="untoggled-icon" />
+        )}
       </button>
     </ToggleSwitchContainer>
   )
