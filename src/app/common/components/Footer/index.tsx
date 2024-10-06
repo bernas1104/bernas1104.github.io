@@ -1,7 +1,5 @@
-import { Moon, Sun } from 'phosphor-react'
-
 import { FooterContainer } from './styles'
-import { useThemeSwitch } from '../../contexts'
+import { useThemeSwitch } from '../../../contexts'
 import { IconToggleSwitch } from '../ToggleSwitch'
 
 export function Footer() {
@@ -14,7 +12,7 @@ export function Footer() {
       <IconToggleSwitch
         toggled={isDefaultTheme}
         onToggle={changeTheme}
-        icons={[Moon, Sun]}
+        icons={['moon', 'sun']}
       />
     </FooterContainer>
   )
