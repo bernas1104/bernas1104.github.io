@@ -1,0 +1,16 @@
+/*
+ * Global resets and scrollbar overrides.
+ * 98.css handles webkit scrollbars via svg-load();
+ * this file covers Firefox / standard scrollbar styling.
+ */
+
+/* Firefox scrollbar theming */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--win98-button-face) var(--win98-button-shadow);
+}
+
+/* Remove default body margin inherited from 98.css */
+body {
+  margin: 0;
+}
