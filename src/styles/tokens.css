@@ -24,8 +24,8 @@
   --win98-frame: var(--win98-window-frame);
 
   /* ── Typography ────────────────────────────────────── */
-  --win98-font: "Microsoft Sans Serif", "Segoe UI", Tahoma, Arial, sans-serif;
-  --win98-font-mono: "Courier New", Courier, monospace;
+  --win98-font: 'Microsoft Sans Serif', 'Segoe UI', tahoma, arial, sans-serif;
+  --win98-font-mono: 'Courier New', courier, monospace;
 
   /* ── Spacing scale ─────────────────────────────────── */
   --win98-space-0: 0;

@@ -9,9 +9,9 @@ function App() {
         <div className="title-bar">
           <div className="title-bar-text">bernasos — Welcome</div>
           <div className="title-bar-controls">
-            <button type="button" aria-label="Minimize" />
-            <button type="button" aria-label="Maximize" />
-            <button type="button" aria-label="Close" />
+            <span aria-label="Minimize" />
+            <span aria-label="Maximize" />
+            <span aria-label="Close" />
           </div>
         </div>
         <div className="window-body">
@@ -33,8 +33,8 @@ function App() {
             </p>
             <p style={{ color: 'var(--win98-window-text)' }}>
               Theme tokens are defined in{' '}
-              <code className="bg-white px-1">src/styles/tokens.css</code> and
-              mapped to Tailwind via <code className="bg-white px-1">@theme</code>.
+              <code className="bg-button-highlight px-1">src/styles/tokens.css</code> and
+              mapped to Tailwind via <code className="bg-button-highlight px-1">@theme</code>.
             </p>
           </div>
 

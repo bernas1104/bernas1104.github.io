@@ -4,20 +4,20 @@
  */
 
 /* 98.css widget chrome (loaded first — never edit directly) */
-@import "98.css";
+@import '98.css';
 
 /* Win98 design tokens as CSS custom properties */
-@import "./styles/tokens.css";
+@import './styles/tokens.css';
 
 /* Global resets and scrollbar overrides */
-@import "./styles/global.css";
+@import './styles/global.css';
 
 /* Tailwind CSS v4 — all utilities layered on top */
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /*
  * Tailwind v4 @theme — maps Win98 tokens into the utility system.
- * Usage: bg-desktop, text-window, border-highlight, font-win98, etc.
+ * Usage: bg-desktop, text-window-text, border-highlight, font-win98, etc.
  */
 @theme {
   /* Colors */
