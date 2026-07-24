@@ -1,0 +1,38 @@
+/*
+ * Windows 98 Design Tokens
+ * Centralized palette, typography, and spacing for theming.
+ * These are consumed by both Tailwind (@theme) and custom CSS.
+ */
+
+:root {
+  /* ── Core palette ──────────────────────────────────── */
+  --win98-desktop: #008080;
+  --win98-button-face: #c0c0c0;
+  --win98-button-highlight: #ffffff;
+  --win98-button-shadow: #808080;
+  --win98-button-dark-shadow: #000000;
+  --win98-window-text: #000000;
+  --win98-selection-bg: #000080;
+  --win98-selection-text: #ffffff;
+  --win98-window-bg: #c0c0c0;
+  --win98-window-frame: #000080;
+
+  /* ── Border aliases (semantic) ─────────────────────── */
+  --win98-highlight: var(--win98-button-highlight);
+  --win98-shadow: var(--win98-button-shadow);
+  --win98-dark-shadow: var(--win98-button-dark-shadow);
+  --win98-frame: var(--win98-window-frame);
+
+  /* ── Typography ────────────────────────────────────── */
+  --win98-font: "Microsoft Sans Serif", "Segoe UI", Tahoma, Arial, sans-serif;
+  --win98-font-mono: "Courier New", Courier, monospace;
+
+  /* ── Spacing scale ─────────────────────────────────── */
+  --win98-space-0: 0;
+  --win98-space-1: 1px;
+  --win98-space-2: 2px;
+  --win98-space-4: 4px;
+  --win98-space-8: 8px;
+  --win98-space-12: 12px;
+  --win98-space-16: 16px;
+}

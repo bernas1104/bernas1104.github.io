@@ -24,6 +24,25 @@ Personal GitHub Pages site (`bernas1104.github.io`, package name `bernasos`): Re
   - `allowImportingTsExtensions` — imports include extensions, e.g. `import App from './App.tsx'`.
 - Prettier: single quotes, semicolons, 2-space indent, trailing commas (see `.prettierrc`).
 
+## Styling
+
+- **Tailwind CSS v4** via `@tailwindcss/vite` plugin — no `tailwind.config.ts` or `postcss.config.js` needed. Theme tokens are mapped to Tailwind utilities via a `@theme` block in `src/index.css`.
+- **98.css** for Windows 98 widget chrome (`.window`, `.title-bar`, `.window-body`, buttons, etc.). Never edit `node_modules/98.css` directly; overrides happen via tokens or scoped custom CSS only.
+- **CSS entry point:** `src/index.css` → imports `98.css`, `./styles/tokens.css`, `./styles/global.css`, then `tailwindcss`. Import order matters (base → tokens → Tailwind).
+- **Design tokens** live in `src/styles/tokens.css` as CSS custom properties (`--win98-*`). Components must reference tokens, never raw hex colors.
+- **Global resets / scrollbar overrides** in `src/styles/global.css`.
+- **Build caveat:** `vite.config.ts` sets `build.cssMinify: false` because lightningcss (Vite 8's default minifier) rejects 98.css's `@media (not(hover))` syntax. Tailwind purge already handles output size.
+
+### Token-to-Tailwind mapping (in `src/index.css` `@theme` block)
+
+| Token | Tailwind utility example |
+|---|---|
+| `--win98-desktop` | `bg-desktop` |
+| `--win98-button-face` | `bg-button-face` |
+| `--win98-window-text` | `text-window-text` |
+| `--win98-font` | `font-win98` |
+| `--win98-selection-bg` | `bg-selection-bg` |
+
 ## Testing
 
 - Vitest config lives in `vite.config.ts` (no separate `vitest.config.*`); environment is `jsdom`.
@@ -34,7 +53,7 @@ Personal GitHub Pages site (`bernas1104.github.io`, package name `bernasos`): Re
 - **Two deploy paths that disagree — reconcile before touching either:**
   - Manual `npm run deploy` publishes `dist/` → `gh-pages` branch.
   - CI (`.github/workflows/node.js.yml`, on push to `main`) deploys via JamesIves action to the **`public`** branch from folder **`out`** — but Vite emits to **`dist/`**, so `touch ./out/.nojekyll` leaves `out` essentially empty. Fix the `out` vs `dist` mismatch and target branch if you edit CI.
-- CI pins Node 18.x; current deps (Vite 8, TypeScript 6, ESLint 10) likely need a newer Node.
+- CI pins Node 18.x; current deps (Vite 8, TypeScript 6, ESLint 9) likely need a newer Node.
 
 ## Branches
 
