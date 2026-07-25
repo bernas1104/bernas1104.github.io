@@ -11,7 +11,6 @@ Personal GitHub Pages site (`bernas1104.github.io`, package name `bernasos`): Re
 - `npm run test` — Vitest watch; `npm run test:run` — single pass (use this for verification)
 - Run one file: `npm run test:run -- src/App.test.tsx`
 - `npm run format` / `format:check` — Prettier on **`src/` only**, not the whole repo
-- `npm run deploy` — manual: `gh-pages -d dist` (pushes `dist/` to the `gh-pages` branch)
 
 ## Enforced conventions
 
@@ -50,11 +49,15 @@ Personal GitHub Pages site (`bernas1104.github.io`, package name `bernasos`): Re
 
 ## Deploy gotchas
 
-- **Two deploy paths that disagree — reconcile before touching either:**
-  - Manual `npm run deploy` publishes `dist/` → `gh-pages` branch.
-  - CI (`.github/workflows/node.js.yml`, on push to `main`) deploys via JamesIves action to the **`public`** branch from folder **`out`** — but Vite emits to **`dist/`**, so `touch ./out/.nojekyll` leaves `out` essentially empty. Fix the `out` vs `dist` mismatch and target branch if you edit CI.
-- CI pins Node 18.x; current deps (Vite 8, TypeScript 6, ESLint 9) likely need a newer Node.
+- Deployment is handled exclusively by `.github/workflows/deploy.yml` (builds `dist/` and publishes via `actions/deploy-pages` on push to `main` or manual dispatch).
+- CI uses `.nvmrc` (Node 22); `package.json` also declares `engines.node >= 22.0.0`.
 
 ## Branches
 
 - `main` is production and triggers the CI deploy. `develop` and `feature/*` branches exist; changes land via PRs into `main`.
+
+## CI/CD
+
+- `.github/workflows/ci.yml` — runs `lint`, `typecheck`, and `test:run` on every PR and push to `main`.
+- `.github/workflows/deploy.yml` — builds `dist/` and deploys to GitHub Pages via `actions/deploy-pages` on push to `main` (or manual dispatch).
+- `.nvmrc` pins the Node version for both workflows.
