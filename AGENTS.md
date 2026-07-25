@@ -9,14 +9,14 @@ Personal GitHub Pages site (`bernas1104.github.io`, package name `bernasos`): Re
 - `npm run typecheck` — `tsc -b --noEmit` (uses `-b`, don't run bare `tsc`)
 - `npm run lint` / `npm run lint:fix`
 - `npm run test` — Vitest watch; `npm run test:run` — single pass (use this for verification)
-- Run one file: `npm run test:run -- src/__tests__/App.test.tsx`
+- Run one file: `npm run test:run -- src/App.test.tsx`
 - `npm run format` / `format:check` — Prettier on **`src/` only**, not the whole repo
 - `npm run deploy` — manual: `gh-pages -d dist` (pushes `dist/` to the `gh-pages` branch)
 
 ## Enforced conventions
 
 - **Conventional commits required.** `commitlint` runs on the `commit-msg` hook; use `type(scope?): subject` (e.g. `feat: ...`, `fix: ...`, `chore: ...`).
-- **Pre-commit runs `npm run lint && npm run typecheck`.** Commits are rejected on lint or type errors — fix all reported errors rather than skipping hooks.
+- **Pre-commit runs `npm run lint && npm run typecheck && npm run test:run`.** Commits are rejected on lint, type, or test errors — fix all reported errors rather than skipping hooks.
 - **Path alias `@/` → `./src/`** (set in both `vite.config.ts` and `tsconfig.app.json`); tests import like `@/App`.
 - **TypeScript strictness that commonly bites:**
   - `verbatimModuleSyntax` — use `import type` for type-only imports.
@@ -46,7 +46,7 @@ Personal GitHub Pages site (`bernas1104.github.io`, package name `bernasos`): Re
 ## Testing
 
 - Vitest config lives in `vite.config.ts` (no separate `vitest.config.*`); environment is `jsdom`.
-- Tests in `src/__tests__/`, using `@testing-library/react` + `@testing-library/jest-dom`.
+- Tests colocated with source (`*.test.tsx`/`*.test.ts` next to the module), using `@testing-library/react` + `@testing-library/jest-dom`.
 
 ## Deploy gotchas
 
