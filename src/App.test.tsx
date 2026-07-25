@@ -1,12 +1,12 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect } from 'vitest';
-import App from '@/App';
+import App from '@/App.tsx';
 
 describe('App', () => {
   it('renders without crashing', () => {
     render(<App />);
-    expect(screen.getByRole('button', { name: /count is/i })).toBeDefined();
+    expect(screen.getByRole('button', { name: /count is/i })).toBeInTheDocument();
   });
 
   it('increments the count when the Count button is clicked', async () => {
