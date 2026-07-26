@@ -6,7 +6,9 @@ import App from '@/App.tsx';
 describe('App', () => {
   it('renders without crashing', () => {
     render(<App />);
-    expect(screen.getByRole('button', { name: /count is/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /count is/i }),
+    ).toBeInTheDocument();
   });
 
   it('increments the count when the Count button is clicked', async () => {
