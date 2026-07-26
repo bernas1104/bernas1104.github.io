@@ -46,6 +46,12 @@ Personal GitHub Pages site (`bernas1104.github.io`, package name `bernasos`): Re
 
 - Vitest config lives in `vite.config.ts` (no separate `vitest.config.*`); environment is `jsdom`.
 - Tests colocated with source (`*.test.tsx`/`*.test.ts` next to the module), using `@testing-library/react` + `@testing-library/jest-dom`.
+- **Type-level tests** use `expect-type` for compile-time assertions (no runtime logic). These run alongside regular tests via Vitest.
+
+## Architecture
+
+- **Shared domain primitives** live in `src/common/types.ts` (e.g. `Brand`, `Position`, `Size`, `IconName`) and are imported by feature modules. Colocated type tests use `expect-type`.
+- **Feature modules** follow `src/features/<feature>/` convention: `types.ts` (domain model), `types.test.ts` (type-level tests), then components/hooks as features grow.
 
 ## Deploy gotchas
 
