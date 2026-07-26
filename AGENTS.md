@@ -16,7 +16,7 @@ Personal GitHub Pages site (`bernas1104.github.io`, package name `bernasos`): Re
 
 - **Conventional commits required.** `commitlint` runs on the `commit-msg` hook; use `type(scope?): subject` (e.g. `feat: ...`, `fix: ...`, `chore: ...`).
 - **Pre-commit runs `npm run lint && npm run typecheck && npm run test:run`.** Commits are rejected on lint, type, or test errors — fix all reported errors rather than skipping hooks.
-- **Path alias `@/` → `./src/`** (set in both `vite.config.ts` and `tsconfig.app.json`); tests import like `@/App`.
+- **Path alias `@/` → `./src/`** (set in both `vite.config.ts` and `tsconfig.app.json`); tests import like `@/App.ts`.
 - **TypeScript strictness that commonly bites:**
   - `verbatimModuleSyntax` — use `import type` for type-only imports.
   - `erasableSyntaxOnly` — no TS-only runtime syntax (enums, parameter properties).
@@ -34,13 +34,13 @@ Personal GitHub Pages site (`bernas1104.github.io`, package name `bernasos`): Re
 
 ### Token-to-Tailwind mapping (in `src/index.css` `@theme` block)
 
-| Token | Tailwind utility example |
-|---|---|
-| `--win98-desktop` | `bg-desktop` |
-| `--win98-button-face` | `bg-button-face` |
-| `--win98-window-text` | `text-window-text` |
-| `--win98-font` | `font-win98` |
-| `--win98-selection-bg` | `bg-selection-bg` |
+| Token                  | Tailwind utility example |
+| ---------------------- | ------------------------ |
+| `--win98-desktop`      | `bg-desktop`             |
+| `--win98-button-face`  | `bg-button-face`         |
+| `--win98-window-text`  | `text-window-text`       |
+| `--win98-font`         | `font-win98`             |
+| `--win98-selection-bg` | `bg-selection-bg`        |
 
 ## Testing
 

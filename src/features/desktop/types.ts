@@ -1,4 +1,4 @@
-import type { Brand, IconName, Position, Size } from '../../common/types';
+import type { Brand, IconName, Position, Size } from '@/common/types.ts';
 
 export type AppId = Brand<string, 'AppId'>;
 
@@ -23,7 +23,7 @@ export type WindowInstance = {
   readonly size: Size;
   readonly state: WindowState;
   readonly zIndex: number;
-}
+};
 
 export type DesktopIcon = {
   readonly appId: AppId;
@@ -36,4 +36,4 @@ export type DesktopState = {
   readonly windows: ReadonlyMap<WindowId, WindowInstance>;
   readonly focusedWindowId: WindowId | null;
   readonly nextZIndex: number;
-}
+};

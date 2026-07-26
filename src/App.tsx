@@ -16,8 +16,8 @@ function App() {
         </div>
         <div className="window-body">
           <p className="mb-4" style={{ color: 'var(--win98-window-text)' }}>
-            Welcome to <strong>bernasos</strong> — a Windows 98-inspired personal
-            site built with React + Tailwind CSS.
+            Welcome to <strong>bernasos</strong> — a Windows 98-inspired
+            personal site built with React + Tailwind CSS.
           </p>
 
           <div
@@ -33,8 +33,11 @@ function App() {
             </p>
             <p style={{ color: 'var(--win98-window-text)' }}>
               Theme tokens are defined in{' '}
-              <code className="bg-button-highlight px-1">src/styles/tokens.css</code> and
-              mapped to Tailwind via <code className="bg-button-highlight px-1">@theme</code>.
+              <code className="bg-button-highlight px-1">
+                src/styles/tokens.css
+              </code>{' '}
+              and mapped to Tailwind via{' '}
+              <code className="bg-button-highlight px-1">@theme</code>.
             </p>
           </div>
 
