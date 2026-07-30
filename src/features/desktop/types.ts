@@ -23,6 +23,7 @@ export type WindowInstance = {
   readonly size: Size;
   readonly state: WindowState;
   readonly zIndex: number;
+  readonly previousState: Exclude<WindowState, 'minimized'> | null;
 };
 
 export type DesktopIcon = {

@@ -47,15 +47,24 @@ Personal GitHub Pages site (`bernas1104.github.io`, package name `bernasos`): Re
 - Vitest config lives in `vite.config.ts` (no separate `vitest.config.*`); environment is `jsdom`.
 - Tests colocated with source (`*.test.tsx`/`*.test.ts` next to the module), using `@testing-library/react` + `@testing-library/jest-dom`.
 - **Type-level tests** use `expect-type` for compile-time assertions (no runtime logic). These run alongside regular tests via Vitest.
+- **Reducer unit tests** exercise pure reducers directly (no React render), using small factory helpers (`makeApp`/`makeWindow`/`makeState`) and mocking `crypto.randomUUID` for deterministic IDs. Assert no-op cases with referential equality (`expect(next).toBe(state)`), and assert immutability (the prior `windows` map is untouched).
 
 ## Architecture
 
 - **Shared domain primitives** live in `src/common/types.ts` (e.g. `Brand`, `Position`, `Size`, `IconName`) and are imported by feature modules. Colocated type tests use `expect-type`.
-- **Feature modules** follow `src/features/<feature>/` convention: `types.ts` (domain model), `types.test.ts` (type-level tests), then components/hooks as features grow.
+- **Feature modules** follow `src/features/<feature>/` convention: `types.ts` (domain model), `types.test.ts` (type-level tests), then components/hooks as features grow. Features can nest sub-modules — e.g. `src/features/desktop/` owns the desktop domain (`types.ts`) and contains `windowManager/` as a sub-module.
+- **Barrel `index.ts`** files expose each module's public API. Import from the barrel, not internal files — e.g. `import { useWindowManager } from '@/features/desktop/windowManager'`. Re-export types with `export type` (required by `verbatimModuleSyntax`).
+- **Stateful sub-features use a reducer + Context pattern** (Redux-like, without Redux). `windowManager/` is the reference implementation:
+  - `actions.ts` — action creators plus a `WindowAction` discriminated union.
+  - `reducer.ts` — pure `windowsReducer` + `initialWindowsState`; exhaustiveness is enforced with `action satisfies never` in the `default` branch.
+  - `WindowManagerContext.ts` / `WindowManagerProvider.tsx` — `useReducer`-backed context providing `{ state, dispatch }`.
+  - `useWindowManager.ts` — consumer hook that throws if used outside the provider.
+- **State immutability:** the reducer never mutates. `windows` is a `ReadonlyMap` and each case builds `new Map(state.windows)` before `.set`/`.delete`. No-op cases (e.g. focusing a missing or minimized window) return the **same state reference** — rely on referential equality for bailouts.
+- **Branded IDs** (`WindowId`, `AppId` via `Brand<string, …>`) keep IDs type-distinct; cast at the boundary only (`crypto.randomUUID() as WindowId`).
 
 ## Deploy gotchas
 
-- Deployment is handled exclusively by `.github/workflows/deploy.yml` (builds `dist/` and publishes via `actions/deploy-pages` on push to `main` or manual dispatch).
+- Deployment is handled exclusively by `.github/workflows/deploy.yml` (builds `dist/` and publishes via `actions/deploy-pages` after CI succeeds on `main`, or via manual `workflow_dispatch`).
 - CI uses `.nvmrc` (Node 22); `package.json` also declares `engines.node >= 22.0.0`.
 
 ## Branches
@@ -65,5 +74,5 @@ Personal GitHub Pages site (`bernas1104.github.io`, package name `bernasos`): Re
 ## CI/CD
 
 - `.github/workflows/ci.yml` — runs `lint`, `typecheck`, and `test:run` on every PR and push to `main`.
-- `.github/workflows/deploy.yml` — builds `dist/` and deploys to GitHub Pages via `actions/deploy-pages` on push to `main` (or manual dispatch).
+- `.github/workflows/deploy.yml` — builds `dist/` and deploys to GitHub Pages via `actions/deploy-pages` after CI succeeds on `main` (`workflow_run`) or via manual `workflow_dispatch`.
 - `.nvmrc` pins the Node version for both workflows.
