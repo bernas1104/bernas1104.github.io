@@ -1,4 +1,4 @@
-import { useReducer, type ReactNode } from 'react';
+import { useMemo, useReducer, type ReactNode } from 'react';
 import { WindowManagerContext } from '@/features/desktop/windowManager/WindowManagerContext.ts';
 import {
   initialWindowsState,
@@ -7,9 +7,10 @@ import {
 
 export function WindowManagerProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(windowsReducer, initialWindowsState);
+  const value = useMemo(() => ({ state, dispatch }), [state, dispatch]);
 
   return (
-    <WindowManagerContext.Provider value={{ state, dispatch }}>
+    <WindowManagerContext.Provider value={value}>
       {children}
     </WindowManagerContext.Provider>
   );

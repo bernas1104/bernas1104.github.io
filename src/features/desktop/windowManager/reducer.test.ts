@@ -193,6 +193,102 @@ describe('windowsReducer', () => {
         expect(updated.zIndex).toBe(7);
         expect(next.nextZIndex).toBe(8);
       });
+
+      it('preserves the existing window state and previousState when not minimized', () => {
+        const next = windowsReducer(state, { type: 'OPEN_APP', app });
+
+        const updated = next.windows.get(existing.id) as WindowInstance;
+        expect(updated.state).toBe('open');
+        expect(updated.previousState).toBeNull();
+      });
+    });
+
+    describe('singleton app with an existing minimized window', () => {
+      const app = makeApp({ id: makeAppId('settings'), singleton: true });
+
+      it('restores to previousState when one exists', () => {
+        const existing = makeWindow({
+          id: makeWindowId('existing'),
+          appId: app.id,
+          state: 'minimized',
+          previousState: 'maximized',
+          zIndex: 1,
+        });
+        const state = makeState({
+          windows: new Map([[existing.id, existing]]),
+          focusedWindowId: null,
+          nextZIndex: 7,
+        });
+
+        const next = windowsReducer(state, { type: 'OPEN_APP', app });
+
+        const updated = next.windows.get(existing.id) as WindowInstance;
+        expect(updated.state).toBe('maximized');
+        expect(updated.previousState).toBeNull();
+      });
+
+      it('restores to open when previousState is null', () => {
+        const existing = makeWindow({
+          id: makeWindowId('existing'),
+          appId: app.id,
+          state: 'minimized',
+          previousState: null,
+          zIndex: 1,
+        });
+        const state = makeState({
+          windows: new Map([[existing.id, existing]]),
+          focusedWindowId: null,
+          nextZIndex: 7,
+        });
+
+        const next = windowsReducer(state, { type: 'OPEN_APP', app });
+
+        const updated = next.windows.get(existing.id) as WindowInstance;
+        expect(updated.state).toBe('open');
+        expect(updated.previousState).toBeNull();
+      });
+
+      it('focuses the restored window and bumps zIndex', () => {
+        const existing = makeWindow({
+          id: makeWindowId('existing'),
+          appId: app.id,
+          state: 'minimized',
+          previousState: 'open',
+          zIndex: 1,
+        });
+        const state = makeState({
+          windows: new Map([[existing.id, existing]]),
+          focusedWindowId: null,
+          nextZIndex: 7,
+        });
+
+        const next = windowsReducer(state, { type: 'OPEN_APP', app });
+
+        expect(next.focusedWindowId).toBe(existing.id);
+        const updated = next.windows.get(existing.id) as WindowInstance;
+        expect(updated.zIndex).toBe(7);
+        expect(next.nextZIndex).toBe(8);
+      });
+
+      it('does not create a new window', () => {
+        const existing = makeWindow({
+          id: makeWindowId('existing'),
+          appId: app.id,
+          state: 'minimized',
+          previousState: 'open',
+          zIndex: 1,
+        });
+        const state = makeState({
+          windows: new Map([[existing.id, existing]]),
+          focusedWindowId: null,
+          nextZIndex: 7,
+        });
+
+        const next = windowsReducer(state, { type: 'OPEN_APP', app });
+
+        expect(next.windows.size).toBe(1);
+        expect([...next.windows.keys()]).toEqual([existing.id]);
+      });
     });
   });
 
@@ -267,6 +363,17 @@ describe('windowsReducer', () => {
 
       expect(originalMap.has(window.id)).toBe(true);
       expect(state.focusedWindowId).toBe(window.id);
+    });
+
+    it('is a no-op (returns same state reference) when the window does not exist', () => {
+      const state = makeState({ nextZIndex: 5 });
+
+      const next = windowsReducer(state, {
+        type: 'CLOSE_WINDOW',
+        windowId: makeWindowId('missing'),
+      });
+
+      expect(next).toBe(state);
     });
   });
 
@@ -398,7 +505,7 @@ describe('windowsReducer', () => {
       ).toBe('maximized');
     });
 
-    it('clears previousState when minimizing an already-minimized window', () => {
+    it('is a no-op (returns same state reference) when the window is already minimized', () => {
       const minimized = makeWindow({
         id: makeWindowId('win-1'),
         state: 'minimized',
@@ -414,9 +521,18 @@ describe('windowsReducer', () => {
         windowId: minimized.id,
       });
 
-      expect(
-        (next.windows.get(minimized.id) as WindowInstance).previousState,
-      ).toBeNull();
+      expect(next).toBe(state);
+    });
+
+    it('is a no-op (returns same state reference) when the window does not exist', () => {
+      const state = makeState({ nextZIndex: 5 });
+
+      const next = windowsReducer(state, {
+        type: 'MINIMIZE_WINDOW',
+        windowId: makeWindowId('missing'),
+      });
+
+      expect(next).toBe(state);
     });
 
     it('shifts focus to the highest-zIndex non-minimized window when minimizing the focused window', () => {
@@ -588,6 +704,59 @@ describe('windowsReducer', () => {
 
       expect(next).toBe(state);
     });
+
+    it('is a no-op (returns same state reference) when the window does not exist', () => {
+      const state = makeState({ nextZIndex: 5 });
+
+      const next = windowsReducer(state, {
+        type: 'TOGGLE_MAXIMIZE',
+        windowId: makeWindowId('missing'),
+      });
+
+      expect(next).toBe(state);
+    });
+
+    it('preserves previousState when maximizing an open window', () => {
+      const window = makeWindow({
+        id: makeWindowId('win-1'),
+        state: 'open',
+        previousState: 'maximized',
+      });
+      const state = makeState({
+        windows: new Map([[window.id, window]]),
+        nextZIndex: 5,
+      });
+
+      const next = windowsReducer(state, {
+        type: 'TOGGLE_MAXIMIZE',
+        windowId: window.id,
+      });
+
+      expect(
+        (next.windows.get(window.id) as WindowInstance).previousState,
+      ).toBe('maximized');
+    });
+
+    it('preserves previousState when restoring a maximized window', () => {
+      const window = makeWindow({
+        id: makeWindowId('win-1'),
+        state: 'maximized',
+        previousState: 'open',
+      });
+      const state = makeState({
+        windows: new Map([[window.id, window]]),
+        nextZIndex: 5,
+      });
+
+      const next = windowsReducer(state, {
+        type: 'TOGGLE_MAXIMIZE',
+        windowId: window.id,
+      });
+
+      expect(
+        (next.windows.get(window.id) as WindowInstance).previousState,
+      ).toBe('open');
+    });
   });
 
   describe('MOVE_WINDOW', () => {
@@ -632,7 +801,7 @@ describe('windowsReducer', () => {
       expect(next.nextZIndex).toBe(4);
     });
 
-    it('leaves state unchanged when the window does not exist', () => {
+    it('is a no-op (returns same state reference) when the window does not exist', () => {
       const state = makeState({ nextZIndex: 2 });
 
       const next = windowsReducer(state, {
@@ -641,9 +810,7 @@ describe('windowsReducer', () => {
         position: { x: 10, y: 20 },
       });
 
-      expect(next.windows.size).toBe(0);
-      expect(next.focusedWindowId).toBeNull();
-      expect(next.nextZIndex).toBe(2);
+      expect(next).toBe(state);
     });
   });
 
@@ -689,7 +856,7 @@ describe('windowsReducer', () => {
       expect(next.nextZIndex).toBe(4);
     });
 
-    it('leaves state unchanged when the window does not exist', () => {
+    it('is a no-op (returns same state reference) when the window does not exist', () => {
       const state = makeState({ nextZIndex: 2 });
 
       const next = windowsReducer(state, {
@@ -698,8 +865,7 @@ describe('windowsReducer', () => {
         size: { width: 800, height: 600 },
       });
 
-      expect(next.windows.size).toBe(0);
-      expect(next.nextZIndex).toBe(2);
+      expect(next).toBe(state);
     });
   });
 

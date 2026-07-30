@@ -64,7 +64,7 @@ Personal GitHub Pages site (`bernas1104.github.io`, package name `bernasos`): Re
 
 ## Deploy gotchas
 
-- Deployment is handled exclusively by `.github/workflows/deploy.yml` (builds `dist/` and publishes via `actions/deploy-pages` on push to `main` or manual dispatch).
+- Deployment is handled exclusively by `.github/workflows/deploy.yml` (builds `dist/` and publishes via `actions/deploy-pages` after CI succeeds on `main`, or via manual `workflow_dispatch`).
 - CI uses `.nvmrc` (Node 22); `package.json` also declares `engines.node >= 22.0.0`.
 
 ## Branches
@@ -74,5 +74,5 @@ Personal GitHub Pages site (`bernas1104.github.io`, package name `bernasos`): Re
 ## CI/CD
 
 - `.github/workflows/ci.yml` — runs `lint`, `typecheck`, and `test:run` on every PR and push to `main`.
-- `.github/workflows/deploy.yml` — builds `dist/` and deploys to GitHub Pages via `actions/deploy-pages` on push to `main` (or manual dispatch).
+- `.github/workflows/deploy.yml` — builds `dist/` and deploys to GitHub Pages via `actions/deploy-pages` after CI succeeds on `main` (`workflow_run`) or via manual `workflow_dispatch`.
 - `.nvmrc` pins the Node version for both workflows.

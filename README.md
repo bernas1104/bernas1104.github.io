@@ -8,7 +8,7 @@ Live site: https://bernas1104.github.io
 
 **bernasos** recreates a Windows 98 desktop environment in the browser as a personal
 site / portfolio. Instead of a traditional scrolling page, content lives inside
- draggable, resizable windows managed by a custom window manager.
+draggable, resizable windows managed by a custom window manager.
 
 The window manager is a Redux-like state layer built on `useReducer` + Context
 (no Redux dependency). It supports:
@@ -25,20 +25,20 @@ layered with Tailwind CSS v4 utilities driven by Win98 design tokens.
 
 ## Tech stack
 
-| Area        | Choice                                                       |
-| ----------- | ------------------------------------------------------------ |
-| UI          | React 19                                                     |
-| Language    | TypeScript ~6 (strict)                                       |
-| Build       | Vite 8                                                       |
-| Styling     | Tailwind CSS v4 (`@tailwindcss/vite`) + 98.css               |
-| Testing     | Vitest 4 + @testing-library/react + jsdom + expect-type      |
-| Lint/format | ESLint 9 + Prettier 3                                        |
-| Git hooks   | Husky + commitlint (Conventional Commits)                    |
-| Deploy      | GitHub Pages via GitHub Actions                              |
+| Area        | Choice                                                  |
+| ----------- | ------------------------------------------------------- |
+| UI          | React 19                                                |
+| Language    | TypeScript ~6 (strict)                                  |
+| Build       | Vite 8                                                  |
+| Styling     | Tailwind CSS v4 (`@tailwindcss/vite`) + 98.css          |
+| Testing     | Vitest 4 + @testing-library/react + jsdom + expect-type |
+| Lint/format | ESLint 9 + Prettier 3                                   |
+| Git hooks   | Husky + commitlint (Conventional Commits)               |
+| Deploy      | GitHub Pages via GitHub Actions                         |
 
 ## Project structure
 
-```
+```text
 src/
 ├── App.tsx                  # Root component
 ├── App.test.tsx
@@ -86,19 +86,19 @@ Then open the printed local URL (default http://localhost:5173).
 
 ## Available scripts
 
-| Script                    | Description                                            |
-| ------------------------- | ------------------------------------------------------ |
-| `npm run dev`             | Start the Vite dev server with HMR                     |
-| `npm run build`           | Type-check (`tsc -b`) then build to `dist/`            |
-| `npm run preview`         | Preview the production build locally                   |
-| `npm run typecheck`       | Type-check without emitting (`tsc -b --noEmit`)        |
-| `npm run lint`            | Lint with ESLint                                       |
-| `npm run lint:fix`        | Lint and auto-fix                                      |
-| `npm run test`            | Run Vitest in watch mode                               |
-| `npm run test:run`        | Run tests once (used by CI and pre-commit)             |
-| `npm run test:coverage`   | Run tests with v8 coverage                             |
-| `npm run format`          | Format `src/` with Prettier                            |
-| `npm run format:check`    | Check `src/` formatting without writing                |
+| Script                  | Description                                     |
+| ----------------------- | ----------------------------------------------- |
+| `npm run dev`           | Start the Vite dev server with HMR              |
+| `npm run build`         | Type-check (`tsc -b`) then build to `dist/`     |
+| `npm run preview`       | Preview the production build locally            |
+| `npm run typecheck`     | Type-check without emitting (`tsc -b --noEmit`) |
+| `npm run lint`          | Lint with ESLint                                |
+| `npm run lint:fix`      | Lint and auto-fix                               |
+| `npm run test`          | Run Vitest in watch mode                        |
+| `npm run test:run`      | Run tests once (used by CI and pre-commit)      |
+| `npm run test:coverage` | Run tests with v8 coverage                      |
+| `npm run format`        | Format `src/` with Prettier                     |
+| `npm run format:check`  | Check `src/` formatting without writing         |
 
 ## Architecture
 

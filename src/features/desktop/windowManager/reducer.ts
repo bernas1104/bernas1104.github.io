@@ -30,6 +30,14 @@ export function windowsReducer(
               const newWindows = new Map(state.windows);
               newWindows.set(existingWindow.id, {
                 ...existingWindow,
+                state:
+                  existingWindow.state === 'minimized'
+                    ? (existingWindow.previousState ?? 'open')
+                    : existingWindow.state,
+                previousState:
+                  existingWindow.state === 'minimized'
+                    ? null
+                    : existingWindow.previousState,
                 zIndex: state.nextZIndex,
               });
               return newWindows;
@@ -58,6 +66,8 @@ export function windowsReducer(
       };
     }
     case 'CLOSE_WINDOW': {
+      if (!state.windows.has(action.windowId)) return state;
+
       return {
         ...state,
         windows: (() => {
@@ -93,21 +103,18 @@ export function windowsReducer(
       };
     }
     case 'MINIMIZE_WINDOW': {
+      const window = state.windows.get(action.windowId);
+      if (!window || window.state === 'minimized') return state;
+
       return {
         ...state,
         windows: (() => {
           const newWindows = new Map(state.windows);
-          const windowToMinimize = newWindows.get(action.windowId);
-          if (windowToMinimize) {
-            newWindows.set(action.windowId, {
-              ...windowToMinimize,
-              state: 'minimized',
-              previousState:
-                windowToMinimize.state !== 'minimized'
-                  ? windowToMinimize.state
-                  : null,
-            });
-          }
+          newWindows.set(action.windowId, {
+            ...window,
+            state: 'minimized',
+            previousState: window.state,
+          });
           return newWindows;
         })(),
         focusedWindowId:
@@ -122,7 +129,7 @@ export function windowsReducer(
     }
     case 'TOGGLE_MAXIMIZE': {
       const window = state.windows.get(action.windowId);
-      if (window?.state === 'minimized') return state;
+      if (!window || window.state === 'minimized') return state;
 
       return {
         ...state,
@@ -144,6 +151,8 @@ export function windowsReducer(
       };
     }
     case 'MOVE_WINDOW': {
+      if (!state.windows.has(action.windowId)) return state;
+
       return {
         ...state,
         windows: (() => {
@@ -160,6 +169,8 @@ export function windowsReducer(
       };
     }
     case 'RESIZE_WINDOW': {
+      if (!state.windows.has(action.windowId)) return state;
+
       return {
         ...state,
         windows: (() => {
