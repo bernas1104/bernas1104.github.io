@@ -200,6 +200,7 @@ export function windowsReducer(
               ...windowToRestore,
               state: windowToRestore.previousState ?? 'open',
               previousState: null,
+              zIndex: state.nextZIndex,
             });
           }
           return newWindows;

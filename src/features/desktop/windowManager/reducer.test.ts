@@ -937,6 +937,8 @@ describe('windowsReducer', () => {
       });
 
       expect(next.focusedWindowId).toBe(window.id);
+      const restored = next.windows.get(window.id) as WindowInstance;
+      expect(restored.zIndex).toBe(5);
       expect(next.nextZIndex).toBe(6);
     });
 
