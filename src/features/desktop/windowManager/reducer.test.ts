@@ -3,45 +3,23 @@ import {
   initialWindowsState,
   windowsReducer,
 } from '@/features/desktop/windowManager/reducer.ts';
+import {
+  makeApp,
+  makeAppId,
+  makeWindow,
+  makeWindowId,
+} from '@/features/desktop/testUtils.ts';
 import type {
-  AppDescriptor,
-  AppId,
   DesktopState,
   WindowId,
   WindowInstance,
 } from '@/features/desktop/types.ts';
 
-const makeAppId = (id: string): AppId => id as AppId;
-const makeWindowId = (id: string): WindowId => id as WindowId;
-
-const makeApp = (
-  overrides: Partial<AppDescriptor> & { id: AppId },
-): AppDescriptor => ({
-  title: 'Test App',
-  icon: 'about',
-  defaultSize: { width: 400, height: 300 },
-  resizable: true,
-  singleton: false,
-  ...overrides,
-});
-
-const makeWindow = (
-  overrides: Partial<WindowInstance> & { id: WindowId },
-): WindowInstance => ({
-  appId: makeAppId('app-1'),
-  title: 'Test Window',
-  position: { x: 100, y: 100 },
-  size: { width: 400, height: 300 },
-  state: 'open',
-  zIndex: 1,
-  previousState: null,
-  ...overrides,
-});
-
 const makeState = (overrides: Partial<DesktopState> = {}): DesktopState => ({
   windows: new Map<WindowId, WindowInstance>(),
   focusedWindowId: null,
   nextZIndex: 1,
+  windowsOpenedCount: 0,
   ...overrides,
 });
 
@@ -56,6 +34,10 @@ describe('initialWindowsState', () => {
 
   it('starts with nextZIndex of 1', () => {
     expect(initialWindowsState.nextZIndex).toBe(1);
+  });
+
+  it('starts with windowsOpenedCount of 0', () => {
+    expect(initialWindowsState.windowsOpenedCount).toBe(0);
   });
 });
 
@@ -113,6 +95,32 @@ describe('windowsReducer', () => {
       expect(window.position).toEqual({ x: 100, y: 100 });
     });
 
+    it('cascades the position for each additional open window', () => {
+      const app = makeApp({ id: makeAppId('notepad') });
+      let state = windowsReducer(initialWindowsState, {
+        type: 'OPEN_APP',
+        app,
+      });
+      state = windowsReducer(state, { type: 'OPEN_APP', app });
+      state = windowsReducer(state, { type: 'OPEN_APP', app });
+
+      const windows = [...state.windows.values()];
+      expect(windows[0].position).toEqual({ x: 100, y: 100 });
+      expect(windows[1].position).toEqual({ x: 124, y: 124 });
+      expect(windows[2].position).toEqual({ x: 148, y: 148 });
+    });
+
+    it('keeps new windows on-screen regardless of nextZIndex', () => {
+      const app = makeApp({ id: makeAppId('notepad') });
+      const state = makeState({ nextZIndex: 50 });
+
+      const next = windowsReducer(state, { type: 'OPEN_APP', app });
+
+      const window = next.windows.values().next().value as WindowInstance;
+      expect(window.position).toEqual({ x: 100, y: 100 });
+      expect(window.zIndex).toBe(50);
+    });
+
     it('assigns the current nextZIndex and increments it', () => {
       const app = makeApp({ id: makeAppId('notepad') });
       const next = windowsReducer(makeState({ nextZIndex: 5 }), {
@@ -133,6 +141,18 @@ describe('windowsReducer', () => {
       });
 
       expect(next.focusedWindowId).toBe(makeWindowId('uuid-1'));
+    });
+
+    it('increments windowsOpenedCount with each created window', () => {
+      const app = makeApp({ id: makeAppId('notepad') });
+      let state = windowsReducer(initialWindowsState, {
+        type: 'OPEN_APP',
+        app,
+      });
+      expect(state.windowsOpenedCount).toBe(1);
+
+      state = windowsReducer(state, { type: 'OPEN_APP', app });
+      expect(state.windowsOpenedCount).toBe(2);
     });
 
     it('opens multiple distinct windows for non-singleton apps', () => {
@@ -328,6 +348,21 @@ describe('windowsReducer', () => {
       });
 
       expect(next.focusedWindowId).toBeNull();
+    });
+
+    it('leaves windowsOpenedCount unchanged when a window is closed', () => {
+      const window = makeWindow({ id: makeWindowId('win-1') });
+      const state = makeState({
+        windows: new Map([[window.id, window]]),
+        windowsOpenedCount: 3,
+      });
+
+      const next = windowsReducer(state, {
+        type: 'CLOSE_WINDOW',
+        windowId: window.id,
+      });
+
+      expect(next.windowsOpenedCount).toBe(3);
     });
 
     it('preserves focus when a different window is closed', () => {
@@ -834,6 +869,50 @@ describe('windowsReducer', () => {
       expect((next.windows.get(window.id) as WindowInstance).size).toEqual({
         width: 800,
         height: 600,
+      });
+    });
+
+    it('clamps the size to the minimum width and height on negative resize', () => {
+      const window = makeWindow({
+        id: makeWindowId('win-1'),
+        size: { width: 400, height: 300 },
+      });
+      const state = makeState({
+        windows: new Map([[window.id, window]]),
+        nextZIndex: 2,
+      });
+
+      const next = windowsReducer(state, {
+        type: 'RESIZE_WINDOW',
+        windowId: window.id,
+        size: { width: 10, height: 5 },
+      });
+
+      expect((next.windows.get(window.id) as WindowInstance).size).toEqual({
+        width: 160,
+        height: 80,
+      });
+    });
+
+    it('does not shrink below the minimum when the window is already at it', () => {
+      const window = makeWindow({
+        id: makeWindowId('win-1'),
+        size: { width: 160, height: 80 },
+      });
+      const state = makeState({
+        windows: new Map([[window.id, window]]),
+        nextZIndex: 2,
+      });
+
+      const next = windowsReducer(state, {
+        type: 'RESIZE_WINDOW',
+        windowId: window.id,
+        size: { width: 0, height: 0 },
+      });
+
+      expect((next.windows.get(window.id) as WindowInstance).size).toEqual({
+        width: 160,
+        height: 80,
       });
     });
 

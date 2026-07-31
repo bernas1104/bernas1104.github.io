@@ -141,4 +141,10 @@ describe('DesktopState', () => {
       nextZIndex: number;
     }>().not.toEqualTypeOf<DesktopState>();
   });
+
+  it('has windowsOpenedCount as number', () => {
+    expectTypeOf<DesktopState>()
+      .toHaveProperty('windowsOpenedCount')
+      .toEqualTypeOf<number>();
+  });
 });

@@ -5,10 +5,14 @@ import type {
 } from '@/features/desktop/types.ts';
 import type { WindowAction } from '@/features/desktop/windowManager/actions.ts';
 
+export const MIN_WINDOW_WIDTH = 160;
+export const MIN_WINDOW_HEIGHT = 80;
+
 export const initialWindowsState: DesktopState = {
   windows: new Map<WindowId, WindowInstance>(),
   focusedWindowId: null,
   nextZIndex: 1,
+  windowsOpenedCount: 0,
 };
 
 export function windowsReducer(
@@ -47,11 +51,12 @@ export function windowsReducer(
         }
       }
 
+      const cascade = (state.windowsOpenedCount % 8) * 24;
       const window: WindowInstance = {
         id: crypto.randomUUID() as WindowId,
         appId: action.app.id,
         title: action.app.title,
-        position: { x: 100, y: 100 },
+        position: { x: 100 + cascade, y: 100 + cascade },
         size: action.app.defaultSize,
         state: 'open',
         zIndex: state.nextZIndex,
@@ -63,6 +68,7 @@ export function windowsReducer(
         windows: new Map(state.windows).set(window.id, window),
         focusedWindowId: window.id,
         nextZIndex: state.nextZIndex + 1,
+        windowsOpenedCount: state.windowsOpenedCount + 1,
       };
     }
     case 'CLOSE_WINDOW': {
@@ -179,7 +185,10 @@ export function windowsReducer(
           if (windowToResize) {
             newWindows.set(action.windowId, {
               ...windowToResize,
-              size: action.size,
+              size: {
+                width: Math.max(MIN_WINDOW_WIDTH, action.size.width),
+                height: Math.max(MIN_WINDOW_HEIGHT, action.size.height),
+              },
             });
           }
           return newWindows;
