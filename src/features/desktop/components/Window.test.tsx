@@ -151,7 +151,7 @@ describe('Window', () => {
       window: win,
       focusedWindowId: win.id,
     });
-    expect(getByLabelText('Resize handler')).toBeInTheDocument();
+    expect(getByLabelText('Resize handle')).toBeInTheDocument();
   });
 
   it('does not render a resize handle when the app is not resizable', () => {
@@ -162,7 +162,7 @@ describe('Window', () => {
       window: win,
       focusedWindowId: win.id,
     });
-    expect(queryByLabelText('Resize handler')).not.toBeInTheDocument();
+    expect(queryByLabelText('Resize handle')).not.toBeInTheDocument();
   });
 
   it('does not render a resize handle when the window is maximized', () => {
@@ -173,7 +173,7 @@ describe('Window', () => {
       window: win,
       focusedWindowId: win.id,
     });
-    expect(queryByLabelText('Resize handler')).not.toBeInTheDocument();
+    expect(queryByLabelText('Resize handle')).not.toBeInTheDocument();
   });
 
   it('dispatches FOCUS_WINDOW when the window receives a pointer down', () => {
@@ -203,7 +203,7 @@ describe('Window', () => {
       window: win,
       focusedWindowId: win.id,
     });
-    const handle = getByLabelText('Resize handler');
+    const handle = getByLabelText('Resize handle');
     fireEvent.pointerDown(handle, { clientX: 0, clientY: 0, pointerId: 1 });
     fireEvent.pointerMove(handle, { clientX: 50, clientY: 25, pointerId: 1 });
     expect(dispatch).toHaveBeenCalledWith({
@@ -263,5 +263,62 @@ describe('Window', () => {
       focusedWindowId: null,
     });
     expect(container.querySelector('.title-bar')).toHaveClass('inactive');
+  });
+
+  it('renders children inside the window body', () => {
+    const app = makeApp({ id: makeAppId('a1') });
+    const win = makeWindow({ id: makeWindowId('w1'), state: 'open' });
+    const { getByText } = render(
+      <WindowManagerContext.Provider
+        value={{ state: initialWindowsState, dispatch: vi.fn() }}
+      >
+        <Window app={app} window={win} focusedWindowId={win.id}>
+          <p>Hello from app</p>
+        </Window>
+      </WindowManagerContext.Provider>,
+    );
+    expect(getByText('Hello from app')).toBeInTheDocument();
+  });
+
+  it('dispatches MOVE_WINDOW when the title bar is dragged', () => {
+    const app = makeApp({ id: makeAppId('a1') });
+    const win = makeWindow({
+      id: makeWindowId('w1'),
+      state: 'open',
+      position: { x: 100, y: 100 },
+    });
+    const { container, dispatch } = renderWindow({
+      app,
+      window: win,
+      focusedWindowId: win.id,
+    });
+    const titleBar = container.querySelector('.title-bar') as HTMLElement;
+    fireEvent.pointerDown(titleBar, { clientX: 10, clientY: 20, pointerId: 1 });
+    fireEvent.pointerMove(titleBar, { clientX: 60, clientY: 45, pointerId: 1 });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'MOVE_WINDOW',
+      windowId: win.id,
+      position: { x: 150, y: 125 },
+    });
+  });
+
+  it('does not dispatch MOVE_WINDOW when a maximized title bar is dragged', () => {
+    const app = makeApp({ id: makeAppId('a1') });
+    const win = makeWindow({
+      id: makeWindowId('w1'),
+      state: 'maximized',
+      position: { x: 100, y: 100 },
+    });
+    const { container, dispatch } = renderWindow({
+      app,
+      window: win,
+      focusedWindowId: win.id,
+    });
+    const titleBar = container.querySelector('.title-bar') as HTMLElement;
+    fireEvent.pointerDown(titleBar, { clientX: 10, clientY: 20, pointerId: 1 });
+    fireEvent.pointerMove(titleBar, { clientX: 60, clientY: 45, pointerId: 1 });
+    expect(dispatch).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'MOVE_WINDOW' }),
+    );
   });
 });

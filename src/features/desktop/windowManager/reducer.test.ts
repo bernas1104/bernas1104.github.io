@@ -113,6 +113,32 @@ describe('windowsReducer', () => {
       expect(window.position).toEqual({ x: 100, y: 100 });
     });
 
+    it('cascades the position for each additional open window', () => {
+      const app = makeApp({ id: makeAppId('notepad') });
+      let state = windowsReducer(initialWindowsState, {
+        type: 'OPEN_APP',
+        app,
+      });
+      state = windowsReducer(state, { type: 'OPEN_APP', app });
+      state = windowsReducer(state, { type: 'OPEN_APP', app });
+
+      const windows = [...state.windows.values()];
+      expect(windows[0].position).toEqual({ x: 100, y: 100 });
+      expect(windows[1].position).toEqual({ x: 124, y: 124 });
+      expect(windows[2].position).toEqual({ x: 148, y: 148 });
+    });
+
+    it('keeps new windows on-screen regardless of nextZIndex', () => {
+      const app = makeApp({ id: makeAppId('notepad') });
+      const state = makeState({ nextZIndex: 50 });
+
+      const next = windowsReducer(state, { type: 'OPEN_APP', app });
+
+      const window = next.windows.values().next().value as WindowInstance;
+      expect(window.position).toEqual({ x: 100, y: 100 });
+      expect(window.zIndex).toBe(50);
+    });
+
     it('assigns the current nextZIndex and increments it', () => {
       const app = makeApp({ id: makeAppId('notepad') });
       const next = windowsReducer(makeState({ nextZIndex: 5 }), {
@@ -716,7 +742,7 @@ describe('windowsReducer', () => {
       expect(next).toBe(state);
     });
 
-    it('overwrites previousState when maximizing an open window', () => {
+    it('preserves previousState when maximizing an open window', () => {
       const window = makeWindow({
         id: makeWindowId('win-1'),
         state: 'open',
@@ -734,10 +760,10 @@ describe('windowsReducer', () => {
 
       expect(
         (next.windows.get(window.id) as WindowInstance).previousState,
-      ).toBe('open');
+      ).toBe('maximized');
     });
 
-    it('overwrites previousState when restoring a maximized window', () => {
+    it('preserves previousState when restoring a maximized window', () => {
       const window = makeWindow({
         id: makeWindowId('win-1'),
         state: 'maximized',
@@ -755,7 +781,7 @@ describe('windowsReducer', () => {
 
       expect(
         (next.windows.get(window.id) as WindowInstance).previousState,
-      ).toBe('maximized');
+      ).toBe('open');
     });
   });
 
@@ -834,6 +860,50 @@ describe('windowsReducer', () => {
       expect((next.windows.get(window.id) as WindowInstance).size).toEqual({
         width: 800,
         height: 600,
+      });
+    });
+
+    it('clamps the size to the minimum width and height on negative resize', () => {
+      const window = makeWindow({
+        id: makeWindowId('win-1'),
+        size: { width: 400, height: 300 },
+      });
+      const state = makeState({
+        windows: new Map([[window.id, window]]),
+        nextZIndex: 2,
+      });
+
+      const next = windowsReducer(state, {
+        type: 'RESIZE_WINDOW',
+        windowId: window.id,
+        size: { width: 10, height: 5 },
+      });
+
+      expect((next.windows.get(window.id) as WindowInstance).size).toEqual({
+        width: 160,
+        height: 80,
+      });
+    });
+
+    it('does not shrink below the minimum when the window is already at it', () => {
+      const window = makeWindow({
+        id: makeWindowId('win-1'),
+        size: { width: 160, height: 80 },
+      });
+      const state = makeState({
+        windows: new Map([[window.id, window]]),
+        nextZIndex: 2,
+      });
+
+      const next = windowsReducer(state, {
+        type: 'RESIZE_WINDOW',
+        windowId: window.id,
+        size: { width: 0, height: 0 },
+      });
+
+      expect((next.windows.get(window.id) as WindowInstance).size).toEqual({
+        width: 160,
+        height: 80,
       });
     });
 

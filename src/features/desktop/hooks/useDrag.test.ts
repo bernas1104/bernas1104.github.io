@@ -229,4 +229,26 @@ describe('useDrag', () => {
     expect(onDelta).toHaveBeenCalledWith(win.id, 10, 10);
     dispatchPointer(el, 'pointerup', 10, 10);
   });
+
+  it('cleans up listeners and signals drag end if the component unmounts mid-drag', () => {
+    const { ref, el } = setupRef();
+    const onDelta = vi.fn();
+    const onDragStateChange = vi.fn();
+    const { result, unmount } = renderHook(() =>
+      useDrag(
+        ref,
+        makeWindow({ id: makeWindowId('w1') }),
+        onDelta,
+        onDragStateChange,
+      ),
+    );
+    result.current.onPointerDown(pointerDownEvent(0, 0));
+    expect(onDragStateChange).toHaveBeenLastCalledWith(true);
+
+    unmount();
+
+    expect(onDragStateChange).toHaveBeenLastCalledWith(false);
+    dispatchPointer(el, 'pointermove', 99, 99);
+    expect(onDelta).not.toHaveBeenCalled();
+  });
 });

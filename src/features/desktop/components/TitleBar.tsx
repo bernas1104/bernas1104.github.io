@@ -11,7 +11,7 @@ export type TitleBarProps = {
 };
 
 export function TitleBar(props: TitleBarProps) {
-  const ref = useRef(null);
+  const ref = useRef<HTMLDivElement | null>(null);
 
   const { dispatch } = useWindowManager();
   const { onPointerDown } = useDrag(
@@ -36,12 +36,7 @@ export function TitleBar(props: TitleBarProps) {
       className={'title-bar' + (props.isFocused ? '' : ' inactive')}
       onPointerDown={onPointerDown}
     >
-      <div className="title-bar-icon" style={{ marginRight: 10 }}>
-        IC
-      </div>
-      <div className="title-bar-text" style={{ flex: 1 }}>
-        {props.title}
-      </div>
+      <div className="title-bar-text">{props.title}</div>
       <div className="title-bar-controls">
         <button
           aria-label="Minimize"
