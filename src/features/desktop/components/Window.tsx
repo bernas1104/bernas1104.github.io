@@ -6,7 +6,7 @@ import type {
   WindowInstance,
 } from '@/features/desktop/types.ts';
 import { TitleBar } from '@/features/desktop/components/TitleBar.tsx';
-import { useWindowManager } from '@/features/desktop/windowManager';
+import { useWindowManager } from '@/features/desktop/windowManager/index.ts';
 
 export type WindowProps = {
   app: AppDescriptor;

@@ -7,7 +7,7 @@ export type PointerDragHandlers = {
 
 export function useDrag(
   ref: React.RefObject<HTMLElement | null>,
-  window: WindowInstance,
+  win: WindowInstance,
   onDelta: (windowId: WindowId, deltaX: number, deltaY: number) => void,
   onDragStateChange?: (isDragging: boolean) => void,
 ): PointerDragHandlers {
@@ -23,7 +23,7 @@ export function useDrag(
   const onPointerDown = (event: React.PointerEvent) => {
     const el = ref.current;
 
-    if (window.state === 'maximized' || !el) return;
+    if (finishRef.current || win.state === 'maximized' || !el) return;
 
     el.setPointerCapture?.(event.pointerId);
 
@@ -31,7 +31,7 @@ export function useDrag(
     const startY = event.clientY;
 
     const onMove = (e: PointerEvent) => {
-      onDelta(window.id, e.clientX - startX, e.clientY - startY);
+      onDelta(win.id, e.clientX - startX, e.clientY - startY);
     };
 
     const finish = () => {

@@ -1,27 +1,7 @@
 import { renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useResize } from '@/features/desktop/hooks/useResize.ts';
-import type {
-  AppId,
-  WindowId,
-  WindowInstance,
-} from '@/features/desktop/types.ts';
-
-const makeAppId = (id: string): AppId => id as AppId;
-const makeWindowId = (id: string): WindowId => id as WindowId;
-
-const makeWindow = (
-  overrides: Partial<WindowInstance> & { id: WindowId },
-): WindowInstance => ({
-  appId: makeAppId('app-1'),
-  title: 'Test Window',
-  position: { x: 100, y: 100 },
-  size: { width: 400, height: 300 },
-  state: 'open',
-  zIndex: 1,
-  previousState: null,
-  ...overrides,
-});
+import { makeWindow, makeWindowId } from '@/features/desktop/testUtils.ts';
 
 function setupRef(): {
   ref: React.RefObject<HTMLElement | null>;

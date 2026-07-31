@@ -7,17 +7,17 @@ import type { WindowId, WindowInstance } from '@/features/desktop/types.ts';
 
 export function useResize(
   ref: React.RefObject<HTMLElement | null>,
-  window: WindowInstance,
+  win: WindowInstance,
   onResize: (windowId: WindowId, size: Size) => void,
   onDragStateChange?: (isDragging: boolean) => void,
 ): PointerDragHandlers {
   return useDrag(
     ref,
-    window,
+    win,
     (windowId, deltaX, deltaY) =>
       onResize(windowId, {
-        width: window.size.width + deltaX,
-        height: window.size.height + deltaY,
+        width: win.size.width + deltaX,
+        height: win.size.height + deltaY,
       }),
     onDragStateChange,
   );

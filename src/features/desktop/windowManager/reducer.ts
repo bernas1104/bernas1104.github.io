@@ -12,6 +12,7 @@ export const initialWindowsState: DesktopState = {
   windows: new Map<WindowId, WindowInstance>(),
   focusedWindowId: null,
   nextZIndex: 1,
+  windowsOpenedCount: 0,
 };
 
 export function windowsReducer(
@@ -50,7 +51,7 @@ export function windowsReducer(
         }
       }
 
-      const cascade = (state.windows.size % 8) * 24;
+      const cascade = (state.windowsOpenedCount % 8) * 24;
       const window: WindowInstance = {
         id: crypto.randomUUID() as WindowId,
         appId: action.app.id,
@@ -67,6 +68,7 @@ export function windowsReducer(
         windows: new Map(state.windows).set(window.id, window),
         focusedWindowId: window.id,
         nextZIndex: state.nextZIndex + 1,
+        windowsOpenedCount: state.windowsOpenedCount + 1,
       };
     }
     case 'CLOSE_WINDOW': {

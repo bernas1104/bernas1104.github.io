@@ -1,27 +1,7 @@
 import { renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useDrag } from '@/features/desktop/hooks/useDrag.ts';
-import type {
-  AppId,
-  WindowId,
-  WindowInstance,
-} from '@/features/desktop/types.ts';
-
-const makeAppId = (id: string): AppId => id as AppId;
-const makeWindowId = (id: string): WindowId => id as WindowId;
-
-const makeWindow = (
-  overrides: Partial<WindowInstance> & { id: WindowId },
-): WindowInstance => ({
-  appId: makeAppId('app-1'),
-  title: 'Test Window',
-  position: { x: 100, y: 100 },
-  size: { width: 400, height: 300 },
-  state: 'open',
-  zIndex: 1,
-  previousState: null,
-  ...overrides,
-});
+import { makeWindow, makeWindowId } from '@/features/desktop/testUtils.ts';
 
 type PointerCaptureEl = HTMLElement & {
   setPointerCapture?: (pointerId: number) => void;
@@ -119,6 +99,25 @@ describe('useDrag', () => {
     dispatchPointer(el, 'pointermove', 140, 80);
     dispatchPointer(el, 'pointermove', 120, 70);
     expect(onDelta).toHaveBeenLastCalledWith(win.id, 20, 20);
+  });
+
+  it('ignores a second pointerdown while a drag is already active', () => {
+    const { ref, el } = setupRef();
+    const onDelta = vi.fn();
+    const onDragStateChange = vi.fn();
+    const { result } = renderHook(() =>
+      useDrag(
+        ref,
+        makeWindow({ id: makeWindowId('w1') }),
+        onDelta,
+        onDragStateChange,
+      ),
+    );
+    result.current.onPointerDown(pointerDownEvent(0, 0));
+    result.current.onPointerDown(pointerDownEvent(100, 100));
+    dispatchPointer(el, 'pointermove', 10, 10);
+    expect(onDelta).toHaveBeenCalledWith(makeWindowId('w1'), 10, 10);
+    expect(onDragStateChange).toHaveBeenCalledTimes(1);
   });
 
   it('ends the drag and removes listeners on pointerup', () => {

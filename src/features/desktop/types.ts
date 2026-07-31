@@ -37,4 +37,5 @@ export type DesktopState = {
   readonly windows: ReadonlyMap<WindowId, WindowInstance>;
   readonly focusedWindowId: WindowId | null;
   readonly nextZIndex: number;
+  readonly windowsOpenedCount: number;
 };

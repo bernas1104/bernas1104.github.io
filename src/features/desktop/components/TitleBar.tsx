@@ -40,35 +40,53 @@ export function TitleBar(props: TitleBarProps) {
       <div className="title-bar-controls">
         <button
           aria-label="Minimize"
-          onPointerDown={(e: React.MouseEvent<HTMLButtonElement>) => {
+          type="button"
+          onPointerDown={(e: React.PointerEvent<HTMLButtonElement>) => {
             e.stopPropagation();
-            dispatch({ type: 'MINIMIZE_WINDOW', windowId: props.window.id });
           }}
+          onClick={() =>
+            dispatch({ type: 'MINIMIZE_WINDOW', windowId: props.window.id })
+          }
         />
         {props.window.state === 'open' && (
           <button
             aria-label="Maximize"
+            type="button"
             onPointerDown={(e: React.PointerEvent<HTMLButtonElement>) => {
               e.stopPropagation();
-              dispatch({ type: 'TOGGLE_MAXIMIZE', windowId: props.window.id });
             }}
+            onClick={() =>
+              dispatch({
+                type: 'TOGGLE_MAXIMIZE',
+                windowId: props.window.id,
+              })
+            }
           />
         )}
         {props.window.state === 'maximized' && (
           <button
             aria-label="Restore"
+            type="button"
             onPointerDown={(e: React.PointerEvent<HTMLButtonElement>) => {
               e.stopPropagation();
-              dispatch({ type: 'TOGGLE_MAXIMIZE', windowId: props.window.id });
             }}
+            onClick={() =>
+              dispatch({
+                type: 'TOGGLE_MAXIMIZE',
+                windowId: props.window.id,
+              })
+            }
           />
         )}
         <button
           aria-label="Close"
+          type="button"
           onPointerDown={(e: React.PointerEvent<HTMLButtonElement>) => {
             e.stopPropagation();
-            dispatch({ type: 'CLOSE_WINDOW', windowId: props.window.id });
           }}
+          onClick={() =>
+            dispatch({ type: 'CLOSE_WINDOW', windowId: props.window.id })
+          }
         />
       </div>
     </div>

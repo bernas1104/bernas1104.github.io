@@ -6,28 +6,8 @@ import {
 } from '@/features/desktop/components/TitleBar.tsx';
 import { WindowManagerContext } from '@/features/desktop/windowManager/WindowManagerContext.ts';
 import { initialWindowsState } from '@/features/desktop/windowManager/reducer.ts';
-import type { WindowAction } from '@/features/desktop/windowManager';
-import type {
-  AppId,
-  WindowId,
-  WindowInstance,
-} from '@/features/desktop/types.ts';
-
-const makeAppId = (id: string): AppId => id as AppId;
-const makeWindowId = (id: string): WindowId => id as WindowId;
-
-const makeWindow = (
-  overrides: Partial<WindowInstance> & { id: WindowId },
-): WindowInstance => ({
-  appId: makeAppId('app-1'),
-  title: 'Test Window',
-  position: { x: 100, y: 100 },
-  size: { width: 400, height: 300 },
-  state: 'open',
-  zIndex: 1,
-  previousState: null,
-  ...overrides,
-});
+import type { WindowAction } from '@/features/desktop/windowManager/index.ts';
+import { makeWindow, makeWindowId } from '@/features/desktop/testUtils.ts';
 
 function renderTitleBar(props: TitleBarProps) {
   const dispatch = vi.fn<(action: WindowAction) => void>();
@@ -106,7 +86,7 @@ describe('TitleBar', () => {
       window: win,
       isFocused: true,
     });
-    fireEvent.pointerDown(getByRole('button', { name: 'Minimize' }));
+    fireEvent.click(getByRole('button', { name: 'Minimize' }));
     expect(dispatch).toHaveBeenCalledWith({
       type: 'MINIMIZE_WINDOW',
       windowId: win.id,
@@ -120,7 +100,7 @@ describe('TitleBar', () => {
       window: win,
       isFocused: true,
     });
-    fireEvent.pointerDown(getByRole('button', { name: 'Maximize' }));
+    fireEvent.click(getByRole('button', { name: 'Maximize' }));
     expect(dispatch).toHaveBeenCalledWith({
       type: 'TOGGLE_MAXIMIZE',
       windowId: win.id,
@@ -134,7 +114,7 @@ describe('TitleBar', () => {
       window: win,
       isFocused: true,
     });
-    fireEvent.pointerDown(getByRole('button', { name: 'Restore' }));
+    fireEvent.click(getByRole('button', { name: 'Restore' }));
     expect(dispatch).toHaveBeenCalledWith({
       type: 'TOGGLE_MAXIMIZE',
       windowId: win.id,
@@ -148,7 +128,7 @@ describe('TitleBar', () => {
       window: win,
       isFocused: true,
     });
-    fireEvent.pointerDown(getByRole('button', { name: 'Close' }));
+    fireEvent.click(getByRole('button', { name: 'Close' }));
     expect(dispatch).toHaveBeenCalledWith({
       type: 'CLOSE_WINDOW',
       windowId: win.id,
@@ -178,6 +158,7 @@ describe('TitleBar', () => {
     expect(dispatch).not.toHaveBeenCalledWith(
       expect.objectContaining({ type: 'MOVE_WINDOW' }),
     );
+    fireEvent.click(getByRole('button', { name: 'Minimize' }));
     expect(dispatch).toHaveBeenCalledWith({
       type: 'MINIMIZE_WINDOW',
       windowId: win.id,

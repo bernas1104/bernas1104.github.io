@@ -6,40 +6,13 @@ import {
 } from '@/features/desktop/components/Window.tsx';
 import { WindowManagerContext } from '@/features/desktop/windowManager/WindowManagerContext.ts';
 import { initialWindowsState } from '@/features/desktop/windowManager/reducer.ts';
-import type { WindowAction } from '@/features/desktop/windowManager';
-import type {
-  AppDescriptor,
-  AppId,
-  WindowId,
-  WindowInstance,
-} from '@/features/desktop/types.ts';
-
-const makeAppId = (id: string): AppId => id as AppId;
-const makeWindowId = (id: string): WindowId => id as WindowId;
-
-const makeApp = (
-  overrides: Partial<AppDescriptor> & { id: AppId },
-): AppDescriptor => ({
-  title: 'Test App',
-  icon: 'about',
-  defaultSize: { width: 400, height: 300 },
-  resizable: true,
-  singleton: false,
-  ...overrides,
-});
-
-const makeWindow = (
-  overrides: Partial<WindowInstance> & { id: WindowId },
-): WindowInstance => ({
-  appId: makeAppId('app-1'),
-  title: 'Test Window',
-  position: { x: 100, y: 100 },
-  size: { width: 400, height: 300 },
-  state: 'open',
-  zIndex: 1,
-  previousState: null,
-  ...overrides,
-});
+import type { WindowAction } from '@/features/desktop/windowManager/index.ts';
+import {
+  makeApp,
+  makeAppId,
+  makeWindow,
+  makeWindowId,
+} from '@/features/desktop/testUtils.ts';
 
 function renderWindow(props: WindowProps) {
   const dispatch = vi.fn<(action: WindowAction) => void>();
