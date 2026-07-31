@@ -1,0 +1,267 @@
+import { fireEvent, render } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  Window,
+  type WindowProps,
+} from '@/features/desktop/components/Window.tsx';
+import { WindowManagerContext } from '@/features/desktop/windowManager/WindowManagerContext.ts';
+import { initialWindowsState } from '@/features/desktop/windowManager/reducer.ts';
+import type { WindowAction } from '@/features/desktop/windowManager';
+import type {
+  AppDescriptor,
+  AppId,
+  WindowId,
+  WindowInstance,
+} from '@/features/desktop/types.ts';
+
+const makeAppId = (id: string): AppId => id as AppId;
+const makeWindowId = (id: string): WindowId => id as WindowId;
+
+const makeApp = (
+  overrides: Partial<AppDescriptor> & { id: AppId },
+): AppDescriptor => ({
+  title: 'Test App',
+  icon: 'about',
+  defaultSize: { width: 400, height: 300 },
+  resizable: true,
+  singleton: false,
+  ...overrides,
+});
+
+const makeWindow = (
+  overrides: Partial<WindowInstance> & { id: WindowId },
+): WindowInstance => ({
+  appId: makeAppId('app-1'),
+  title: 'Test Window',
+  position: { x: 100, y: 100 },
+  size: { width: 400, height: 300 },
+  state: 'open',
+  zIndex: 1,
+  previousState: null,
+  ...overrides,
+});
+
+function renderWindow(props: WindowProps) {
+  const dispatch = vi.fn<(action: WindowAction) => void>();
+  const utils = render(
+    <WindowManagerContext.Provider
+      value={{ state: initialWindowsState, dispatch }}
+    >
+      <Window {...props} />
+    </WindowManagerContext.Provider>,
+  );
+  return { ...utils, dispatch };
+}
+
+describe('Window', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('renders nothing when minimized', () => {
+    const app = makeApp({ id: makeAppId('a1') });
+    const win = makeWindow({ id: makeWindowId('w1'), state: 'minimized' });
+    const { container } = renderWindow({
+      app,
+      window: win,
+      focusedWindowId: win.id,
+    });
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('renders the window chrome with title and body when open', () => {
+    const app = makeApp({ id: makeAppId('a1') });
+    const win = makeWindow({
+      id: makeWindowId('w1'),
+      title: 'Notepad',
+      state: 'open',
+    });
+    const { container, getByText } = renderWindow({
+      app,
+      window: win,
+      focusedWindowId: win.id,
+    });
+    expect(container.querySelector('.window')).toBeInTheDocument();
+    expect(getByText('Notepad')).toBeInTheDocument();
+    expect(container.querySelector('.window-body')).toBeInTheDocument();
+  });
+
+  it('positions and sizes the window from its position and size when open', () => {
+    const app = makeApp({ id: makeAppId('a1') });
+    const win = makeWindow({
+      id: makeWindowId('w1'),
+      position: { x: 120, y: 80 },
+      size: { width: 320, height: 240 },
+      state: 'open',
+    });
+    const { container } = renderWindow({
+      app,
+      window: win,
+      focusedWindowId: win.id,
+    });
+    const el = container.querySelector('.window') as HTMLElement;
+    expect(el.style.top).toBe('80px');
+    expect(el.style.left).toBe('120px');
+    expect(el.style.width).toBe('320px');
+    expect(el.style.height).toBe('240px');
+  });
+
+  it('fills the viewport when maximized', () => {
+    const app = makeApp({ id: makeAppId('a1'), resizable: true });
+    const win = makeWindow({
+      id: makeWindowId('w1'),
+      state: 'maximized',
+      position: { x: 120, y: 80 },
+      size: { width: 320, height: 240 },
+    });
+    const { container } = renderWindow({
+      app,
+      window: win,
+      focusedWindowId: win.id,
+    });
+    const el = container.querySelector('.window') as HTMLElement;
+    expect(el.style.top).toBe('0px');
+    expect(el.style.left).toBe('0px');
+    expect(el.style.width).toBe('100%');
+    expect(el.style.height).toBe('100%');
+  });
+
+  it('applies the window zIndex as the z-index style', () => {
+    const app = makeApp({ id: makeAppId('a1') });
+    const win = makeWindow({
+      id: makeWindowId('w1'),
+      zIndex: 7,
+      state: 'open',
+    });
+    const { container } = renderWindow({
+      app,
+      window: win,
+      focusedWindowId: win.id,
+    });
+    expect(
+      (container.querySelector('.window') as HTMLElement).style.zIndex,
+    ).toBe('7');
+  });
+
+  it('renders a resize handle when the app is resizable and the window is open', () => {
+    const app = makeApp({ id: makeAppId('a1'), resizable: true });
+    const win = makeWindow({ id: makeWindowId('w1'), state: 'open' });
+    const { getByLabelText } = renderWindow({
+      app,
+      window: win,
+      focusedWindowId: win.id,
+    });
+    expect(getByLabelText('Resize handler')).toBeInTheDocument();
+  });
+
+  it('does not render a resize handle when the app is not resizable', () => {
+    const app = makeApp({ id: makeAppId('a1'), resizable: false });
+    const win = makeWindow({ id: makeWindowId('w1'), state: 'open' });
+    const { queryByLabelText } = renderWindow({
+      app,
+      window: win,
+      focusedWindowId: win.id,
+    });
+    expect(queryByLabelText('Resize handler')).not.toBeInTheDocument();
+  });
+
+  it('does not render a resize handle when the window is maximized', () => {
+    const app = makeApp({ id: makeAppId('a1'), resizable: true });
+    const win = makeWindow({ id: makeWindowId('w1'), state: 'maximized' });
+    const { queryByLabelText } = renderWindow({
+      app,
+      window: win,
+      focusedWindowId: win.id,
+    });
+    expect(queryByLabelText('Resize handler')).not.toBeInTheDocument();
+  });
+
+  it('dispatches FOCUS_WINDOW when the window receives a pointer down', () => {
+    const app = makeApp({ id: makeAppId('a1') });
+    const win = makeWindow({ id: makeWindowId('w1'), state: 'open' });
+    const { container, dispatch } = renderWindow({
+      app,
+      window: win,
+      focusedWindowId: win.id,
+    });
+    fireEvent.pointerDown(container.querySelector('.window') as HTMLElement);
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'FOCUS_WINDOW',
+      windowId: win.id,
+    });
+  });
+
+  it('dispatches RESIZE_WINDOW with the new size when the resize handle is dragged', () => {
+    const app = makeApp({ id: makeAppId('a1'), resizable: true });
+    const win = makeWindow({
+      id: makeWindowId('w1'),
+      size: { width: 400, height: 300 },
+      state: 'open',
+    });
+    const { getByLabelText, dispatch } = renderWindow({
+      app,
+      window: win,
+      focusedWindowId: win.id,
+    });
+    const handle = getByLabelText('Resize handler');
+    fireEvent.pointerDown(handle, { clientX: 0, clientY: 0, pointerId: 1 });
+    fireEvent.pointerMove(handle, { clientX: 50, clientY: 25, pointerId: 1 });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'RESIZE_WINDOW',
+      windowId: win.id,
+      size: { width: 450, height: 325 },
+    });
+  });
+
+  it('animates the window geometry by default', () => {
+    const app = makeApp({ id: makeAppId('a1') });
+    const win = makeWindow({ id: makeWindowId('w1'), state: 'open' });
+    const { container } = renderWindow({
+      app,
+      window: win,
+      focusedWindowId: win.id,
+    });
+    const winEl = container.querySelector('.window') as HTMLElement;
+    expect(winEl.style.transition).toContain('top 0.2s');
+    expect(winEl.style.transition).toContain('width 0.2s');
+  });
+
+  it('disables the transition while the title bar is being dragged', () => {
+    const app = makeApp({ id: makeAppId('a1') });
+    const win = makeWindow({ id: makeWindowId('w1'), state: 'open' });
+    const { container } = renderWindow({
+      app,
+      window: win,
+      focusedWindowId: win.id,
+    });
+    const winEl = container.querySelector('.window') as HTMLElement;
+    const titleBar = container.querySelector('.title-bar') as HTMLElement;
+    expect(winEl.style.transition).not.toBe('none');
+    fireEvent.pointerDown(titleBar);
+    expect(winEl.style.transition).toBe('none');
+    fireEvent.pointerUp(titleBar);
+    expect(winEl.style.transition).not.toBe('none');
+  });
+
+  it('passes the focused state to the title bar', () => {
+    const app = makeApp({ id: makeAppId('a1') });
+    const win = makeWindow({ id: makeWindowId('w1'), state: 'open' });
+    const { container } = renderWindow({
+      app,
+      window: win,
+      focusedWindowId: win.id,
+    });
+    expect(container.querySelector('.title-bar')).not.toHaveClass('inactive');
+  });
+
+  it('passes the unfocused state to the title bar', () => {
+    const app = makeApp({ id: makeAppId('a1') });
+    const win = makeWindow({ id: makeWindowId('w1'), state: 'open' });
+    const { container } = renderWindow({
+      app,
+      window: win,
+      focusedWindowId: null,
+    });
+    expect(container.querySelector('.title-bar')).toHaveClass('inactive');
+  });
+});

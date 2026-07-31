@@ -716,7 +716,7 @@ describe('windowsReducer', () => {
       expect(next).toBe(state);
     });
 
-    it('preserves previousState when maximizing an open window', () => {
+    it('overwrites previousState when maximizing an open window', () => {
       const window = makeWindow({
         id: makeWindowId('win-1'),
         state: 'open',
@@ -734,10 +734,10 @@ describe('windowsReducer', () => {
 
       expect(
         (next.windows.get(window.id) as WindowInstance).previousState,
-      ).toBe('maximized');
+      ).toBe('open');
     });
 
-    it('preserves previousState when restoring a maximized window', () => {
+    it('overwrites previousState when restoring a maximized window', () => {
       const window = makeWindow({
         id: makeWindowId('win-1'),
         state: 'maximized',
@@ -755,7 +755,7 @@ describe('windowsReducer', () => {
 
       expect(
         (next.windows.get(window.id) as WindowInstance).previousState,
-      ).toBe('open');
+      ).toBe('maximized');
     });
   });
 

@@ -141,6 +141,8 @@ export function windowsReducer(
               ...windowToMaximize,
               state:
                 windowToMaximize.state === 'maximized' ? 'open' : 'maximized',
+              previousState:
+                windowToMaximize.state === 'maximized' ? 'maximized' : 'open',
               zIndex: state.nextZIndex,
             });
           }
