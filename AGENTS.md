@@ -48,6 +48,8 @@ Personal GitHub Pages site (`bernas1104.github.io`, package name `bernasos`): Re
 - Tests colocated with source (`*.test.tsx`/`*.test.ts` next to the module), using `@testing-library/react` + `@testing-library/jest-dom`.
 - **Type-level tests** use `expect-type` for compile-time assertions (no runtime logic). These run alongside regular tests via Vitest.
 - **Reducer unit tests** exercise pure reducers directly (no React render), using small factory helpers (`makeApp`/`makeWindow`/`makeState`) and mocking `crypto.randomUUID` for deterministic IDs. Assert no-op cases with referential equality (`expect(next).toBe(state)`), and assert immutability (the prior `windows` map is untouched).
+- **Component tests** (`Window`, `TitleBar`) render through a `WindowManagerContext.Provider` with a `vi.fn` dispatch and assert dispatched actions / rendered chrome.
+- **Hook tests** (`useDrag`, `useResize`) use `renderHook` with a manually created DOM element ref, dispatch synthetic `PointerEvent`s, and cover pointer capture, cumulative deltas, drag-state callbacks, unmount cleanup, and maximized no-ops.
 
 ## Architecture
 
@@ -56,9 +58,14 @@ Personal GitHub Pages site (`bernas1104.github.io`, package name `bernasos`): Re
 - **Barrel `index.ts`** files expose each module's public API. Import from the barrel, not internal files — e.g. `import { useWindowManager } from '@/features/desktop/windowManager'`. Re-export types with `export type` (required by `verbatimModuleSyntax`).
 - **Stateful sub-features use a reducer + Context pattern** (Redux-like, without Redux). `windowManager/` is the reference implementation:
   - `actions.ts` — action creators plus a `WindowAction` discriminated union.
-  - `reducer.ts` — pure `windowsReducer` + `initialWindowsState`; exhaustiveness is enforced with `action satisfies never` in the `default` branch.
-  - `WindowManagerContext.ts` / `WindowManagerProvider.tsx` — `useReducer`-backed context providing `{ state, dispatch }`.
+  - `reducer.ts` — pure `windowsReducer` + `initialWindowsState`; exhaustiveness is enforced with `action satisfies never` in the `default` branch. Exports `MIN_WINDOW_WIDTH` / `MIN_WINDOW_HEIGHT` (`RESIZE_WINDOW` clamps to them); `OPEN_APP` cascades new windows (`(size % 8) * 24`px offset).
+  - `WindowManagerContext.ts` / `WindowManagerProvider.tsx` — `useReducer`-backed context providing `{ state, dispatch }`; mounted in `src/main.tsx` wrapping `<App />`.
   - `useWindowManager.ts` — consumer hook that throws if used outside the provider.
+- **Presentation layer** lives in `src/features/desktop/components/` + `src/features/desktop/hooks/`, consuming the window manager via `useWindowManager`:
+  - `Window.tsx` — `.window` chrome (position/size/zIndex from `WindowInstance`, maximized fills viewport), dispatches `FOCUS_WINDOW` on pointer down, renders a resize handle for resizable non-maximized apps, disables geometry CSS transitions during drag/resize.
+  - `TitleBar.tsx` — title + Minimize/Maximize/Restore/Close controls (dispatching matching actions); drives dragging via `useDrag`; adds `inactive` when unfocused and stops propagation on controls.
+  - `useDrag` (`hooks/useDrag.ts`) — pointer-capture drag reporting cumulative deltas from drag start; optional `onDragStateChange` callback; no-op when maximized; cleans up listeners (and signals drag end) on unmount via a `finishRef` + `useEffect`. Barrel at `hooks/index.ts`.
+  - `useResize` (`hooks/useResize.ts`) — wraps `useDrag`, converting deltas to a new `Size` (`window.size + delta`); callback signature `onResize(windowId, size: Size)`.
 - **State immutability:** the reducer never mutates. `windows` is a `ReadonlyMap` and each case builds `new Map(state.windows)` before `.set`/`.delete`. No-op cases (e.g. focusing a missing or minimized window) return the **same state reference** — rely on referential equality for bailouts.
 - **Branded IDs** (`WindowId`, `AppId` via `Brand<string, …>`) keep IDs type-distinct; cast at the boundary only (`crypto.randomUUID() as WindowId`).
 

@@ -13,11 +13,11 @@ draggable, resizable windows managed by a custom window manager.
 The window manager is a Redux-like state layer built on `useReducer` + Context
 (no Redux dependency). It supports:
 
-- **Open / close** windows, with singleton apps that reuse an existing instance
+- **Open / close** windows, with singleton apps that reuse an existing instance; new windows **cascade** on open
 - **Focus** management via a monotonic `zIndex` stack (clicking a window brings it to front)
 - **Minimize / restore**, remembering the prior window state (open vs. maximized)
 - **Maximize toggle** (open ⇄ maximized)
-- **Move / resize** windows
+- **Move / resize** windows (resize enforces a minimum size)
 - Focus falls back to the next-highest visible window when the focused one is minimized
 
 The Win98 look comes from [98.css](https://jdan.github.io/98.css/) for widget chrome,
@@ -42,7 +42,7 @@ layered with Tailwind CSS v4 utilities driven by Win98 design tokens.
 src/
 ├── App.tsx                  # Root component
 ├── App.test.tsx
-├── main.tsx                 # React entry point
+├── main.tsx                 # React entry point (mounts App inside WindowManagerProvider)
 ├── index.css                # CSS entry: 98.css → tokens → global → tailwind
 ├── common/
 │   ├── types.ts             # Brand, Position, Size, IconName
@@ -51,10 +51,21 @@ src/
 │   └── desktop/
 │       ├── types.ts         # AppId, WindowId, AppDescriptor, WindowInstance, DesktopState
 │       ├── types.test.ts
+│       ├── components/      # Window chrome UI
+│       │   ├── Window.tsx              # Chrome: position/size/zIndex, focus, resize handle
+│       │   ├── Window.test.tsx
+│       │   ├── TitleBar.tsx            # Title + Minimize/Maximize/Restore/Close; drives drag
+│       │   └── TitleBar.test.tsx
+│       ├── hooks/           # Pointer interaction hooks
+│       │   ├── index.ts                 # Barrel: useDrag, useResize
+│       │   ├── useDrag.ts               # Pointer-capture drag (cumulative deltas)
+│       │   ├── useDrag.test.ts
+│       │   ├── useResize.ts             # Resize via useDrag (delta → new Size)
+│       │   └── useResize.test.ts
 │       └── windowManager/   # Reducer + Context state layer
 │           ├── index.ts                 # Barrel: public API
 │           ├── actions.ts               # WindowAction union + action creators
-│           ├── reducer.ts               # windowsReducer + initialWindowsState
+│           ├── reducer.ts               # windowsReducer + initialWindowsState + min-size constants
 │           ├── reducer.test.ts          # Pure reducer unit tests
 │           ├── WindowManagerContext.ts  # { state, dispatch } context
 │           ├── WindowManagerProvider.tsx
@@ -126,10 +137,33 @@ The window manager follows a Redux-like pattern without Redux:
   transitions `DesktopState` and never mutates: `windows` is a `ReadonlyMap` and each
   case builds a `new Map(state.windows)` before `.set`/`.delete`. No-op cases (focusing
   a missing or minimized window) return the same state reference. Exhaustiveness is
-  enforced at compile time via `action satisfies never` in the `default` branch.
+  enforced at compile time via `action satisfies never` in the `default` branch. It
+  also exports `MIN_WINDOW_WIDTH` / `MIN_WINDOW_HEIGHT` — `RESIZE_WINDOW` clamps to
+  them — and `OPEN_APP` cascades new windows (`(size % 8) * 24`px offset from 100,100).
 - **`WindowManagerProvider.tsx`** wires `useReducer(windowsReducer, initialWindowsState)`
-  into a Context, exposing `{ state, dispatch }`.
+  into a Context, exposing `{ state, dispatch }`. It is mounted in `src/main.tsx`,
+  wrapping `<App />`.
 - **`useWindowManager.ts`** consumes the context and throws if used outside the provider.
+
+### Components & interaction hooks
+
+The presentation layer lives in `src/features/desktop/components/` and
+`src/features/desktop/hooks/`, consuming the window manager via `useWindowManager`:
+
+- **`Window.tsx`** renders the `.window` chrome, applying `position`, `size`, and
+  `zIndex` from `WindowInstance` (maximized fills the viewport). It dispatches
+  `FOCUS_WINDOW` on pointer down, renders a resize handle for resizable non-maximized
+  apps, and disables geometry CSS transitions while a drag/resize is in progress.
+- **`TitleBar.tsx`** renders the title and Minimize / Maximize / Restore / Close
+  controls (dispatching the matching actions) and drives window dragging via `useDrag`.
+  It adds the `inactive` class when unfocused and stops propagation on controls so
+  clicking a button doesn't start a drag.
+- **`useDrag`** is a pointer-based drag hook: it captures the pointer, reports the
+  cumulative delta from drag start on each `pointermove`, signals drag state changes
+  via an optional callback, is a no-op when the window is maximized, and cleans up
+  listeners (signaling drag end) if the component unmounts mid-drag.
+- **`useResize`** wraps `useDrag`, converting the cumulative delta into a new `Size`
+  (`window.size + delta`). Its callback is `onResize(windowId, size: Size)`.
 
 ### Domain model
 
@@ -153,7 +187,12 @@ at the boundary (`crypto.randomUUID() as WindowId`).
 
 - Vitest config lives in `vite.config.ts` (jsdom environment); tests are colocated with
   source as `*.test.ts` / `*.test.tsx`.
-- **Component tests** use `@testing-library/react` + `@testing-library/jest-dom`.
+- **Component tests** (`Window`, `TitleBar`) use `@testing-library/react` +
+  `@testing-library/jest-dom`, rendering through a `WindowManagerContext.Provider` with
+  a `vi.fn` dispatch to assert dispatched actions and rendered chrome.
+- **Hook tests** (`useDrag`, `useResize`) use `renderHook` with a manually created DOM
+  element ref and synthetic `PointerEvent`s to cover cumulative deltas, pointer capture,
+  drag-state callbacks, unmount cleanup, and maximized no-ops.
 - **Type-level tests** use `expect-type` for compile-time assertions (no runtime logic).
 - **Reducer unit tests** exercise the pure reducer directly (no React render), using
   small factory helpers (`makeApp`/`makeWindow`/`makeState`) and mocking
