@@ -40,6 +40,7 @@ export function Window(props: WindowProps) {
       onPointerDown={() =>
         dispatch({ type: 'FOCUS_WINDOW', windowId: props.window.id })
       }
+      onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}
       style={{
         zIndex: props.window.zIndex,
         position: 'absolute',
@@ -63,15 +64,7 @@ export function Window(props: WindowProps) {
       {props.app.resizable && !isMaximized && (
         <div
           ref={ref}
-          style={{
-            position: 'absolute',
-            top: '98%',
-            left: '98%',
-            width: '10px',
-            height: '10px',
-            cursor: 'nwse-resize',
-            backgroundColor: 'transparent',
-          }}
+          className="window-resize-handle"
           onPointerDown={(event) => onPointerDown(event)}
           aria-label="Resize handle"
         />

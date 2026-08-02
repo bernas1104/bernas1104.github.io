@@ -9,5 +9,6 @@ export {
   moveWindow,
   resizeWindow,
   restoreWindow,
+  clearFocus,
 } from './actions.ts';
 export type { WindowAction } from './actions.ts';

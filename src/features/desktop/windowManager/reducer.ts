@@ -218,6 +218,14 @@ export function windowsReducer(
         nextZIndex: state.nextZIndex + 1,
       };
     }
+    case 'CLEAR_FOCUS': {
+      if (state.focusedWindowId === null) return state;
+
+      return {
+        ...state,
+        focusedWindowId: null,
+      };
+    }
     default: {
       action satisfies never;
       return state;

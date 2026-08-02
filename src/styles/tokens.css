@@ -7,14 +7,15 @@
 :root {
   /* ── Core palette ──────────────────────────────────── */
   --win98-desktop: #008080;
+  --win98-desktop-text: #ffffff;
   --win98-button-face: #c0c0c0;
   --win98-button-highlight: #ffffff;
   --win98-button-shadow: #808080;
   --win98-button-dark-shadow: #000000;
-  --win98-window-text: #000000;
   --win98-selection-bg: #000080;
   --win98-selection-text: #ffffff;
   --win98-window-bg: #c0c0c0;
+  --win98-window-text: #000000;
   --win98-window-frame: #000080;
 
   /* ── Border aliases (semantic) ─────────────────────── */
