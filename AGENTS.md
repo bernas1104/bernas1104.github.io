@@ -29,7 +29,7 @@ Personal GitHub Pages site (`bernas1104.github.io`, package name `bernasos`): Re
 - **98.css** for Windows 98 widget chrome (`.window`, `.title-bar`, `.window-body`, buttons, etc.). Never edit `node_modules/98.css` directly; overrides happen via tokens or scoped custom CSS only.
 - **CSS entry point:** `src/index.css` → imports `98.css`, `./styles/tokens.css`, `./styles/global.css`, then `tailwindcss`. Import order matters (base → tokens → Tailwind).
 - **Design tokens** live in `src/styles/tokens.css` as CSS custom properties (`--win98-*`). Components must reference tokens, never raw hex colors.
-- **Global resets / scrollbar overrides** in `src/styles/global.css`.
+- **Global styles** in `src/styles/global.css`: body overflow lock, `.desktop` background layer, `.window-resize-handle`, `.title-bar-text`, and desktop-icon selection styling (`.icon-selected`, `.icon-text-selected`, `.desktop-icon-container`).
 - **Build caveat:** `vite.config.ts` sets `build.cssMinify: false` because lightningcss (Vite 8's default minifier) rejects 98.css's `@media (not(hover))` syntax. Tailwind purge already handles output size.
 
 ### Token-to-Tailwind mapping (in `src/index.css` `@theme` block)
@@ -42,13 +42,16 @@ Personal GitHub Pages site (`bernas1104.github.io`, package name `bernasos`): Re
 | `--win98-font`         | `font-win98`             |
 | `--win98-selection-bg` | `bg-selection-bg`        |
 
+Not every token maps to a utility — `--win98-desktop-text` (desktop icon labels) is consumed directly by `global.css`.
+
 ## Testing
 
 - Vitest config lives in `vite.config.ts` (no separate `vitest.config.*`); environment is `jsdom`.
 - Tests colocated with source (`*.test.tsx`/`*.test.ts` next to the module), using `@testing-library/react` + `@testing-library/jest-dom`.
 - **Type-level tests** use `expect-type` for compile-time assertions (no runtime logic). These run alongside regular tests via Vitest.
+- **Action creator tests** (`actions.test.ts`) assert each creator's output and, via `expect-type`, that every creator returns a member of the `WindowAction` union and that the union is discriminated by the expected type literals.
 - **Reducer unit tests** exercise pure reducers directly (no React render), using small factory helpers (`makeApp`/`makeWindow`/`makeState`) and mocking `crypto.randomUUID` for deterministic IDs. Assert no-op cases with referential equality (`expect(next).toBe(state)`), and assert immutability (the prior `windows` map is untouched).
-- **Component tests** (`Window`, `TitleBar`) render through a `WindowManagerContext.Provider` with a `vi.fn` dispatch and assert dispatched actions / rendered chrome.
+- **Component tests** (`Window`, `TitleBar`, `Desktop`, `DesktopIcon`) render through a `WindowManagerContext.Provider` with a `vi.fn` dispatch and assert dispatched actions / rendered chrome.
 - **Hook tests** (`useDrag`, `useResize`) use `renderHook` with a manually created DOM element ref, dispatch synthetic `PointerEvent`s, and cover pointer capture, cumulative deltas, drag-state callbacks, unmount cleanup, and maximized no-ops.
 
 ## Architecture
@@ -57,13 +60,15 @@ Personal GitHub Pages site (`bernas1104.github.io`, package name `bernasos`): Re
 - **Feature modules** follow `src/features/<feature>/` convention: `types.ts` (domain model), `types.test.ts` (type-level tests), then components/hooks as features grow. Features can nest sub-modules — e.g. `src/features/desktop/` owns the desktop domain (`types.ts`) and contains `windowManager/` as a sub-module.
 - **Barrel `index.ts`** files expose each module's public API. Import from the barrel, not internal files — e.g. `import { useWindowManager } from '@/features/desktop/windowManager'`. Re-export types with `export type` (required by `verbatimModuleSyntax`).
 - **Stateful sub-features use a reducer + Context pattern** (Redux-like, without Redux). `windowManager/` is the reference implementation:
-  - `actions.ts` — action creators plus a `WindowAction` discriminated union.
-  - `reducer.ts` — pure `windowsReducer` + `initialWindowsState`; exhaustiveness is enforced with `action satisfies never` in the `default` branch. Exports `MIN_WINDOW_WIDTH` / `MIN_WINDOW_HEIGHT` (`RESIZE_WINDOW` clamps to them); `OPEN_APP` cascades new windows (`(size % 8) * 24`px offset).
+  - `actions.ts` — action creators plus a `WindowAction` discriminated union (including the payload-less `CLEAR_FOCUS`).
+  - `reducer.ts` — pure `windowsReducer` + `initialWindowsState`; exhaustiveness is enforced with `action satisfies never` in the `default` branch. Exports `MIN_WINDOW_WIDTH` / `MIN_WINDOW_HEIGHT` (`RESIZE_WINDOW` clamps to them); `OPEN_APP` cascades new windows (`(size % 8) * 24`px offset); `CLEAR_FOCUS` nulls `focusedWindowId` (no-op → same state reference when already null).
   - `WindowManagerContext.ts` / `WindowManagerProvider.tsx` — `useReducer`-backed context providing `{ state, dispatch }`; mounted in `src/main.tsx` wrapping `<App />`.
   - `useWindowManager.ts` — consumer hook that throws if used outside the provider.
 - **Presentation layer** lives in `src/features/desktop/components/` + `src/features/desktop/hooks/`, consuming the window manager via `useWindowManager`:
-  - `Window.tsx` — `.window` chrome (position/size/zIndex from `WindowInstance`, maximized fills viewport), dispatches `FOCUS_WINDOW` on pointer down, renders a resize handle for resizable non-maximized apps, disables geometry CSS transitions during drag/resize.
+  - `Window.tsx` — `.window` chrome (position/size/zIndex from `WindowInstance`, maximized fills viewport), dispatches `FOCUS_WINDOW` on pointer down, stops click propagation so desktop clicks don't clear focus, renders a `.window-resize-handle` for resizable non-maximized apps, disables geometry CSS transitions during drag/resize.
   - `TitleBar.tsx` — title + Minimize/Maximize/Restore/Close controls (dispatching matching actions); drives dragging via `useDrag`; adds `inactive` when unfocused and stops propagation on controls.
+  - `Desktop.tsx` — desktop background hosting windows and icons; renders non-minimized windows sorted by z-index and dispatches `CLEAR_FOCUS` on background click.
+  - `DesktopIcon.tsx` — keyboard-focusable app icon (`role="button"`); single-click selects (Win98 dashed selection), double-click or Enter dispatches `OPEN_APP`. Icon artwork lives in `src/assets/icons/`.
   - `useDrag` (`hooks/useDrag.ts`) — pointer-capture drag reporting cumulative deltas from drag start; optional `onDragStateChange` callback; no-op when maximized; cleans up listeners (and signals drag end) on unmount via a `finishRef` + `useEffect`. Barrel at `hooks/index.ts`.
   - `useResize` (`hooks/useResize.ts`) — wraps `useDrag`, converting deltas to a new `Size` (`window.size + delta`); callback signature `onResize(windowId, size: Size)`.
 - **State immutability:** the reducer never mutates. `windows` is a `ReadonlyMap` and each case builds `new Map(state.windows)` before `.set`/`.delete`. No-op cases (e.g. focusing a missing or minimized window) return the **same state reference** — rely on referential equality for bailouts.
