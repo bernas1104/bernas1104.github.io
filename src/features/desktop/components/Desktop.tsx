@@ -1,7 +1,7 @@
-import type { AppDescriptor, AppId } from '../types';
-import { useWindowManager } from '../windowManager';
-import { DesktopIcon } from './DesktopIcon';
-import { Window } from './Window';
+import type { AppDescriptor, AppId } from '@/features/desktop/types.ts';
+import { useWindowManager } from '@/features/desktop/windowManager/index.ts';
+import { DesktopIcon } from '@/features/desktop/components/DesktopIcon.tsx';
+import { Window } from '@/features/desktop/components/Window.tsx';
 
 const bernasOsApp: AppDescriptor = {
   id: '1' as AppId,
