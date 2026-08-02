@@ -1,8 +1,10 @@
 import { fireEvent, render } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DesktopIcon } from '@/features/desktop/components/DesktopIcon.tsx';
-import { WindowManagerContext } from '@/features/desktop/windowManager/WindowManagerContext.ts';
-import { initialWindowsState } from '@/features/desktop/windowManager/reducer.ts';
+import {
+  initialWindowsState,
+  WindowManagerContext,
+} from '@/features/desktop/windowManager/index.ts';
 import type { WindowAction } from '@/features/desktop/windowManager/index.ts';
 import type { AppDescriptor } from '@/features/desktop/types.ts';
 import { makeApp, makeAppId } from '@/features/desktop/testUtils.ts';
@@ -122,10 +124,17 @@ describe('DesktopIcon', () => {
     expect(dispatch).not.toHaveBeenCalled();
   });
 
-  it('ignores non-Enter keys when selected', () => {
-    const { getByRole, dispatch } = renderDesktopIcon();
+  it('dispatches OPEN_APP with the app on Space when selected', () => {
+    const { getByRole, dispatch, app } = renderDesktopIcon();
     fireEvent.click(getByRole('button'));
     fireEvent.keyDown(getByRole('button'), { key: ' ' });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'OPEN_APP', app });
+  });
+
+  it('ignores non-activation keys when selected', () => {
+    const { getByRole, dispatch } = renderDesktopIcon();
+    fireEvent.click(getByRole('button'));
+    fireEvent.keyDown(getByRole('button'), { key: 'Escape' });
     expect(dispatch).not.toHaveBeenCalled();
   });
 

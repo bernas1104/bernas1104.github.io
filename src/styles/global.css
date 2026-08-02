@@ -42,7 +42,6 @@ body {
   width: 36px;
   height: 36px;
   margin: -2px;
-
   z-index: 1;
   color: var(--win98-selection-text);
   background-color: color-mix(
@@ -69,9 +68,7 @@ body {
 .desktop-icon-container {
   display: flex;
   flex-direction: column;
-
   align-items: center;
-
   outline: none;
   padding: var(--win98-space-8);
   width: 80px;

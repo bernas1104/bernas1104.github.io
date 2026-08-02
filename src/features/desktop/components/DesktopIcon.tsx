@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { AppDescriptor } from '../types';
-import { useWindowManager } from '../windowManager';
+import type { AppDescriptor } from '@/features/desktop/types.ts';
+import { useWindowManager } from '@/features/desktop/windowManager/index.ts';
 import ComputerExplorerIcon from '@/assets/icons/computer_explorer-5.png';
 
 export function DesktopIcon({ app }: { app: AppDescriptor }) {
@@ -8,7 +8,8 @@ export function DesktopIcon({ app }: { app: AppDescriptor }) {
   const [isSelected, setIsSelected] = useState(false);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === 'Enter' && isSelected) {
+    if (isSelected && (event.key === 'Enter' || event.key === ' ')) {
+      if (event.key === ' ') event.preventDefault();
       setIsSelected(false);
       dispatch({ type: 'OPEN_APP', app });
     }
@@ -19,7 +20,10 @@ export function DesktopIcon({ app }: { app: AppDescriptor }) {
       tabIndex={0}
       role="button"
       aria-label={app.title}
-      onClick={() => setIsSelected(true)}
+      onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+        e.stopPropagation();
+        setIsSelected(true);
+      }}
       onBlur={() => setIsSelected(false)}
       onFocus={() => setIsSelected(true)}
       onDoubleClick={() => {

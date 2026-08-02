@@ -1,7 +1,16 @@
-import type { AppId } from '../types';
+import type { AppDescriptor, AppId } from '../types';
 import { useWindowManager } from '../windowManager';
 import { DesktopIcon } from './DesktopIcon';
 import { Window } from './Window';
+
+const bernasOsApp: AppDescriptor = {
+  id: '1' as AppId,
+  title: 'BernasOS',
+  defaultSize: { width: 400, height: 300 },
+  singleton: true,
+  resizable: true,
+  icon: 'folder',
+};
 
 export function Desktop() {
   const { state, dispatch } = useWindowManager();
@@ -9,10 +18,13 @@ export function Desktop() {
   return (
     <div
       className="desktop bg-desktop min-h-screen"
+      role="presentation"
       onPointerDown={(e: React.PointerEvent<HTMLDivElement>) =>
         e.stopPropagation()
       }
-      onClick={() => dispatch({ type: 'CLEAR_FOCUS' })}
+      onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+        if (e.target === e.currentTarget) dispatch({ type: 'CLEAR_FOCUS' });
+      }}
     >
       {Array.from(state.windows.values())
         .sort((a, b) => a.zIndex - b.zIndex)
@@ -22,30 +34,14 @@ export function Desktop() {
           return (
             <Window
               key={window.id}
-              app={{
-                id: '1' as AppId,
-                title: 'BernasOS',
-                defaultSize: { width: 400, height: 300 },
-                singleton: true,
-                resizable: true,
-                icon: 'folder',
-              }}
+              app={bernasOsApp}
               window={window}
               focusedWindowId={state.focusedWindowId}
             />
           );
         })}
 
-      <DesktopIcon
-        app={{
-          id: '1' as AppId,
-          title: 'BernasOS',
-          defaultSize: { width: 400, height: 300 },
-          singleton: true,
-          resizable: true,
-          icon: 'folder',
-        }}
-      />
+      <DesktopIcon app={bernasOsApp} />
     </div>
   );
 }

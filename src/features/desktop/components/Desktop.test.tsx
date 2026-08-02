@@ -1,7 +1,7 @@
 import { fireEvent, render } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Desktop } from '@/features/desktop/components/Desktop.tsx';
-import { WindowManagerContext } from '@/features/desktop/windowManager/WindowManagerContext.ts';
+import { WindowManagerContext } from '@/features/desktop/windowManager/index.ts';
 import type { WindowAction } from '@/features/desktop/windowManager/index.ts';
 import type {
   DesktopState,
@@ -103,7 +103,7 @@ describe('Desktop', () => {
     expect(queryByText('Hidden')).not.toBeInTheDocument();
   });
 
-  it('renders windows ordered by descending zIndex (highest first in DOM)', () => {
+  it('renders windows ordered by ascending zIndex (lowest zIndex first in DOM)', () => {
     const low = makeWindow({
       id: makeWindowId('low'),
       title: 'Low',
@@ -180,6 +180,13 @@ describe('Desktop', () => {
 
     const { container, dispatch } = renderDesktop(state);
     fireEvent.click(container.querySelector('.window') as HTMLElement);
+
+    expect(dispatch).not.toHaveBeenCalledWith({ type: 'CLEAR_FOCUS' });
+  });
+
+  it('does not dispatch CLEAR_FOCUS when a desktop icon is clicked', () => {
+    const { getByRole, dispatch } = renderDesktop();
+    fireEvent.click(getByRole('button', { name: 'BernasOS' }));
 
     expect(dispatch).not.toHaveBeenCalledWith({ type: 'CLEAR_FOCUS' });
   });
