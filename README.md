@@ -14,9 +14,10 @@ The window manager is a Redux-like state layer built on `useReducer` + Context
 (no Redux dependency). It supports:
 
 - **Open / close** windows, with singleton apps that reuse an existing instance; new windows **cascade** on open
-- **Focus** management via a monotonic `zIndex` stack (clicking a window brings it to front)
+- **Focus** management via a monotonic `zIndex` stack (clicking a window brings it to front); clicking the desktop background clears focus
 - **Minimize / restore**, remembering the prior window state (open vs. maximized)
 - **Maximize toggle** (open ⇄ maximized)
+- **Desktop icons**: click to select (Win98 dashed highlight), double-click or Enter to open an app
 - **Move / resize** windows (resize enforces a minimum size)
 - Focus falls back to the next-highest visible window when the focused one is minimized
 
@@ -44,6 +45,8 @@ src/
 ├── App.test.tsx
 ├── main.tsx                 # React entry point (mounts App inside WindowManagerProvider)
 ├── index.css                # CSS entry: 98.css → tokens → global → tailwind
+├── assets/
+│   └── icons/               # Desktop icon artwork (computer_explorer-*.png)
 ├── common/
 │   ├── types.ts             # Brand, Position, Size, IconName
 │   └── types.test.ts        # Type-level tests (expect-type)
@@ -51,7 +54,11 @@ src/
 │   └── desktop/
 │       ├── types.ts         # AppId, WindowId, AppDescriptor, WindowInstance, DesktopState
 │       ├── types.test.ts
-│       ├── components/      # Window chrome UI
+│       ├── components/      # Desktop chrome UI
+│       │   ├── Desktop.tsx              # Desktop background; hosts icons + windows
+│       │   ├── Desktop.test.tsx
+│       │   ├── DesktopIcon.tsx          # Selectable app icon (click / double-click / Enter)
+│       │   ├── DesktopIcon.test.tsx
 │       │   ├── Window.tsx              # Chrome: position/size/zIndex, focus, resize handle
 │       │   ├── Window.test.tsx
 │       │   ├── TitleBar.tsx            # Title + Minimize/Maximize/Restore/Close; drives drag
@@ -65,6 +72,7 @@ src/
 │       └── windowManager/   # Reducer + Context state layer
 │           ├── index.ts                 # Barrel: public API
 │           ├── actions.ts               # WindowAction union + action creators
+│           ├── actions.test.ts          # Action creator + type-level union tests
 │           ├── reducer.ts               # windowsReducer + initialWindowsState + min-size constants
 │           ├── reducer.test.ts          # Pure reducer unit tests
 │           ├── WindowManagerContext.ts  # { state, dispatch } context
@@ -72,7 +80,7 @@ src/
 │           └── useWindowManager.ts      # Consumer hook
 ├── styles/
 │   ├── tokens.css           # Win98 design tokens (CSS custom properties)
-│   └── global.css           # Resets / scrollbar overrides
+│   └── global.css           # Desktop chrome: overflow lock, resize handle, icon selection
 └── test/
     └── setup.ts             # Vitest setup (jest-dom matchers)
 ```
@@ -132,7 +140,8 @@ The window manager follows a Redux-like pattern without Redux:
 
 - **`actions.ts`** defines a `WindowAction` discriminated union and action creators
   (`openApp`, `closeWindow`, `focusWindow`, `minimizeWindow`, `toggleMaximizeWindow`,
-  `moveWindow`, `resizeWindow`, `restoreWindow`).
+  `moveWindow`, `resizeWindow`, `restoreWindow`, `clearFocus`). `CLEAR_FOCUS` is a
+  payload-less action that clears the focused window.
 - **`reducer.ts`** holds a pure `windowsReducer` and `initialWindowsState`. The reducer
   transitions `DesktopState` and never mutates: `windows` is a `ReadonlyMap` and each
   case builds a `new Map(state.windows)` before `.set`/`.delete`. No-op cases (focusing
@@ -140,6 +149,8 @@ The window manager follows a Redux-like pattern without Redux:
   enforced at compile time via `action satisfies never` in the `default` branch. It
   also exports `MIN_WINDOW_WIDTH` / `MIN_WINDOW_HEIGHT` — `RESIZE_WINDOW` clamps to
   them — and `OPEN_APP` cascades new windows (`(size % 8) * 24`px offset from 100,100).
+  `CLEAR_FOCUS` sets `focusedWindowId` back to `null` and returns the same state
+  reference when nothing is focused.
 - **`WindowManagerProvider.tsx`** wires `useReducer(windowsReducer, initialWindowsState)`
   into a Context, exposing `{ state, dispatch }`. It is mounted in `src/main.tsx`,
   wrapping `<App />`.
@@ -152,12 +163,19 @@ The presentation layer lives in `src/features/desktop/components/` and
 
 - **`Window.tsx`** renders the `.window` chrome, applying `position`, `size`, and
   `zIndex` from `WindowInstance` (maximized fills the viewport). It dispatches
-  `FOCUS_WINDOW` on pointer down, renders a resize handle for resizable non-maximized
-  apps, and disables geometry CSS transitions while a drag/resize is in progress.
+  `FOCUS_WINDOW` on pointer down, stops click propagation so desktop clicks don't
+  clear focus, renders a `.window-resize-handle` for resizable non-maximized apps,
+  and disables geometry CSS transitions while a drag/resize is in progress.
 - **`TitleBar.tsx`** renders the title and Minimize / Maximize / Restore / Close
   controls (dispatching the matching actions) and drives window dragging via `useDrag`.
   It adds the `inactive` class when unfocused and stops propagation on controls so
   clicking a button doesn't start a drag.
+- **`Desktop.tsx`** renders the desktop background, hosts a `DesktopIcon`, and renders
+  each non-minimized window sorted by z-index. Clicking the background dispatches
+  `CLEAR_FOCUS`.
+- **`DesktopIcon.tsx`** is a keyboard-focusable app icon (`role="button"`,
+  `tabIndex={0}`): single click selects it (Win98 dashed outline), double-click or
+  Enter dispatches `OPEN_APP`. Icon artwork lives in `src/assets/icons/`.
 - **`useDrag`** is a pointer-based drag hook: it captures the pointer, reports the
   cumulative delta from drag start on each `pointermove`, signals drag state changes
   via an optional callback, is a no-op when the window is maximized, and cleans up
@@ -179,6 +197,10 @@ at the boundary (`crypto.randomUUID() as WindowId`).
   `.window-body`, buttons, etc.).
 - **`src/styles/tokens.css`** centralizes the Win98 palette, typography, and spacing as
   `--win98-*` CSS custom properties. Components reference tokens, never raw hex colors.
+- **`src/styles/global.css`** adds desktop chrome: body overflow lock, `.desktop`
+  background layer, `.window-resize-handle`, and the desktop-icon selection styles
+  (`.desktop-icon-container`, `.icon-selected`, `.icon-text-selected`). Desktop icon
+  labels use the `--win98-desktop-text` token.
 - **`src/index.css`** maps those tokens into Tailwind v4 via a `@theme` block, so
   utilities like `bg-desktop`, `text-window-text`, and `font-win98` work. Import order
   matters: `98.css` → `tokens.css` → `global.css` → `tailwindcss`.
@@ -187,13 +209,17 @@ at the boundary (`crypto.randomUUID() as WindowId`).
 
 - Vitest config lives in `vite.config.ts` (jsdom environment); tests are colocated with
   source as `*.test.ts` / `*.test.tsx`.
-- **Component tests** (`Window`, `TitleBar`) use `@testing-library/react` +
-  `@testing-library/jest-dom`, rendering through a `WindowManagerContext.Provider` with
-  a `vi.fn` dispatch to assert dispatched actions and rendered chrome.
+- **Component tests** (`Window`, `TitleBar`, `Desktop`, `DesktopIcon`) use
+  `@testing-library/react` + `@testing-library/jest-dom`, rendering through a
+  `WindowManagerContext.Provider` with a `vi.fn` dispatch to assert dispatched actions
+  and rendered chrome.
 - **Hook tests** (`useDrag`, `useResize`) use `renderHook` with a manually created DOM
   element ref and synthetic `PointerEvent`s to cover cumulative deltas, pointer capture,
   drag-state callbacks, unmount cleanup, and maximized no-ops.
 - **Type-level tests** use `expect-type` for compile-time assertions (no runtime logic).
+- **Action creator tests** (`actions.test.ts`) assert each creator's output and, via
+  `expect-type`, that every creator returns a `WindowAction` and that the union is
+  discriminated by the expected type literals.
 - **Reducer unit tests** exercise the pure reducer directly (no React render), using
   small factory helpers (`makeApp`/`makeWindow`/`makeState`) and mocking
   `crypto.randomUUID` for deterministic IDs. No-op cases are asserted with referential

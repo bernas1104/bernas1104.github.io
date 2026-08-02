@@ -9,7 +9,8 @@ export type WindowAction =
   | { type: 'TOGGLE_MAXIMIZE'; windowId: WindowId }
   | { type: 'MOVE_WINDOW'; windowId: WindowId; position: Position }
   | { type: 'RESIZE_WINDOW'; windowId: WindowId; size: Size }
-  | { type: 'RESTORE_WINDOW'; windowId: WindowId };
+  | { type: 'RESTORE_WINDOW'; windowId: WindowId }
+  | { type: 'CLEAR_FOCUS' };
 
 export const openApp = (app: AppDescriptor): WindowAction => ({
   type: 'OPEN_APP',
@@ -54,4 +55,8 @@ export const resizeWindow = (windowId: WindowId, size: Size): WindowAction => ({
 export const restoreWindow = (windowId: WindowId): WindowAction => ({
   type: 'RESTORE_WINDOW',
   windowId,
+});
+
+export const clearFocus = (): WindowAction => ({
+  type: 'CLEAR_FOCUS',
 });

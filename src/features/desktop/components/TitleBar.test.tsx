@@ -4,8 +4,10 @@ import {
   TitleBar,
   type TitleBarProps,
 } from '@/features/desktop/components/TitleBar.tsx';
-import { WindowManagerContext } from '@/features/desktop/windowManager/WindowManagerContext.ts';
-import { initialWindowsState } from '@/features/desktop/windowManager/reducer.ts';
+import {
+  initialWindowsState,
+  WindowManagerContext,
+} from '@/features/desktop/windowManager/index.ts';
 import type { WindowAction } from '@/features/desktop/windowManager/index.ts';
 import { makeWindow, makeWindowId } from '@/features/desktop/testUtils.ts';
 

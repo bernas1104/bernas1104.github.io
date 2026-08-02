@@ -1048,6 +1048,84 @@ describe('windowsReducer', () => {
     });
   });
 
+  describe('CLEAR_FOCUS', () => {
+    it('sets focusedWindowId to null when a window is focused', () => {
+      const window = makeWindow({ id: makeWindowId('win-1') });
+      const state = makeState({
+        windows: new Map([[window.id, window]]),
+        focusedWindowId: window.id,
+        nextZIndex: 2,
+      });
+
+      const next = windowsReducer(state, { type: 'CLEAR_FOCUS' });
+
+      expect(next.focusedWindowId).toBeNull();
+    });
+
+    it('is a no-op (returns same state reference) when no window is focused', () => {
+      const window = makeWindow({ id: makeWindowId('win-1') });
+      const state = makeState({
+        windows: new Map([[window.id, window]]),
+        focusedWindowId: null,
+        nextZIndex: 2,
+      });
+
+      const next = windowsReducer(state, { type: 'CLEAR_FOCUS' });
+
+      expect(next).toBe(state);
+      expect(next.focusedWindowId).toBeNull();
+    });
+
+    it('is a no-op (returns same state reference) from the initial state', () => {
+      const next = windowsReducer(initialWindowsState, { type: 'CLEAR_FOCUS' });
+
+      expect(next).toBe(initialWindowsState);
+    });
+
+    it('preserves the windows map, nextZIndex, and windowsOpenedCount', () => {
+      const window = makeWindow({ id: makeWindowId('win-1') });
+      const state = makeState({
+        windows: new Map([[window.id, window]]),
+        focusedWindowId: window.id,
+        nextZIndex: 7,
+        windowsOpenedCount: 3,
+      });
+
+      const next = windowsReducer(state, { type: 'CLEAR_FOCUS' });
+
+      expect(next.windows).toBe(state.windows);
+      expect(next.windows.get(window.id)).toBe(window);
+      expect(next.nextZIndex).toBe(7);
+      expect(next.windowsOpenedCount).toBe(3);
+    });
+
+    it('does not mutate the original state', () => {
+      const window = makeWindow({ id: makeWindowId('win-1') });
+      const state = makeState({
+        windows: new Map([[window.id, window]]),
+        focusedWindowId: window.id,
+        nextZIndex: 2,
+      });
+
+      windowsReducer(state, { type: 'CLEAR_FOCUS' });
+
+      expect(state.focusedWindowId).toBe(window.id);
+    });
+
+    it('returns a new state object reference when clearing focus', () => {
+      const window = makeWindow({ id: makeWindowId('win-1') });
+      const state = makeState({
+        windows: new Map([[window.id, window]]),
+        focusedWindowId: window.id,
+        nextZIndex: 2,
+      });
+
+      const next = windowsReducer(state, { type: 'CLEAR_FOCUS' });
+
+      expect(next).not.toBe(state);
+    });
+  });
+
   describe('immutability', () => {
     it('does not mutate the previous state map for OPEN_APP', () => {
       const app = makeApp({ id: makeAppId('notepad') });
