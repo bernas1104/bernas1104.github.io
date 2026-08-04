@@ -282,11 +282,14 @@ at the boundary (`crypto.randomUUID() as WindowId`).
   separate: they render `Clock` directly (it consumes no context), using fake
   timers to drive the minute-boundary update and the 60-second refresh and to
   assert timer cleanup on unmount.
-- **Hook tests** (`useDrag`, `useResize`, `useOutsideClick`, `useStartMenu`) use
+- **Pointer-interaction hook tests** (`useDrag`, `useResize`, `useOutsideClick`) use
   `renderHook` with a manually created DOM element ref and synthetic `PointerEvent`s
   to cover cumulative deltas, pointer capture, drag-state callbacks, unmount cleanup,
   and maximized no-ops. `useOutsideClick` also covers the `enabled` flag and listener
-  (re)subscription; `useStartMenu` asserts it throws outside a `StartMenuProvider`.
+  (re)subscription.
+- **Context hook tests** (`useStartMenu`) use `renderHook` through a
+  `StartMenuContext.Provider`, asserting the returned handlers (including updated
+  context values on re-render) and that the hook throws outside a `StartMenuProvider`.
 - **Type-level tests** use `expect-type` for compile-time assertions (no runtime logic).
 - **Action creator tests** (`actions.test.ts`) assert each creator's output and, via
   `expect-type`, that every creator returns a `WindowAction` and that the union is

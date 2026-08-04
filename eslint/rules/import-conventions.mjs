@@ -31,6 +31,11 @@ function toAlias(srcRoot, abs) {
   return `@/${toPosix(rel)}`;
 }
 
+function toRelativeSpecifier(fileDir, abs) {
+  const rel = toPosix(path.relative(fileDir, abs));
+  return rel.startsWith('.') ? rel : `./${rel}`;
+}
+
 function toSourceString(value) {
   return `'${value.replaceAll('\\', '\\\\').replaceAll("'", "\\'")}'`;
 }
@@ -92,7 +97,7 @@ export default {
             if (!fixed) return null;
             const specifier = isInside(srcRoot, fixed)
               ? toAlias(srcRoot, fixed)
-              : toPosix(path.relative(fileDir, fixed));
+              : toRelativeSpecifier(fileDir, fixed);
             return fixer.replaceText(node.source, toSourceString(specifier));
           },
         });

@@ -62,5 +62,12 @@ ruleTester.run('import-conventions', importConventions, {
       output: `import { value } from '../fixtures/shared/value.ts';`,
       errors: [{ messageId: 'missingExtension' }],
     },
+    {
+      name: 'extensionless sibling import outside src gets a ./ prefix',
+      filename: 'fixtures/shared/imports.ts',
+      code: `import { value } from './value';`,
+      output: `import { value } from './value.ts';`,
+      errors: [{ messageId: 'missingExtension' }],
+    },
   ],
 });
