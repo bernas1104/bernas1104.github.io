@@ -25,7 +25,9 @@
   --win98-frame: var(--win98-window-frame);
 
   /* ── Typography ────────────────────────────────────── */
-  --win98-font: 'Microsoft Sans Serif', 'Segoe UI', tahoma, arial, sans-serif;
+  --win98-font:
+    'Pixelated MS Sans Serif', 'Microsoft Sans Serif', 'Segoe UI', tahoma,
+    arial, sans-serif;
   --win98-font-mono: 'Courier New', courier, monospace;
 
   /* ── Spacing scale ─────────────────────────────────── */
@@ -36,4 +38,8 @@
   --win98-space-8: 8px;
   --win98-space-12: 12px;
   --win98-space-16: 16px;
+
+  /* --- Z-index scale --- */
+  --win98-z-index-taskbar: 9999;
+  --win98-z-index-start-menu: 10000;
 }

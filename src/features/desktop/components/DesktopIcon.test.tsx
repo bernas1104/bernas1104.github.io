@@ -45,8 +45,8 @@ describe('DesktopIcon', () => {
     const { getByAltText } = renderDesktopIcon();
     const img = getByAltText('My Computer Icon');
     expect(img).toBeInTheDocument();
-    expect(img).toHaveAttribute('width', '32');
-    expect(img).toHaveAttribute('height', '32');
+    expect(img).toHaveAttribute('width', '48');
+    expect(img).toHaveAttribute('height', '48');
   });
 
   it('is focusable via tabIndex', () => {

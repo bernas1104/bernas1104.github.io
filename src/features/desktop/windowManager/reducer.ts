@@ -85,6 +85,7 @@ export function windowsReducer(
           state.focusedWindowId === action.windowId
             ? null
             : state.focusedWindowId,
+        windowsOpenedCount: state.windowsOpenedCount - 1,
       };
     }
     case 'FOCUS_WINDOW': {

@@ -1,7 +1,7 @@
-export { WindowManagerProvider } from './WindowManagerProvider.tsx';
-export { useWindowManager } from './useWindowManager.ts';
-export { WindowManagerContext } from './WindowManagerContext.ts';
-export { initialWindowsState } from './reducer.ts';
+export { WindowManagerProvider } from '@/features/desktop/windowManager/WindowManagerProvider.tsx';
+export { useWindowManager } from '@/features/desktop/windowManager/useWindowManager.ts';
+export { WindowManagerContext } from '@/features/desktop/windowManager/WindowManagerContext.ts';
+export { initialWindowsState } from '@/features/desktop/windowManager/reducer.ts';
 export {
   openApp,
   closeWindow,
@@ -12,5 +12,5 @@ export {
   resizeWindow,
   restoreWindow,
   clearFocus,
-} from './actions.ts';
-export type { WindowAction } from './actions.ts';
+} from '@/features/desktop/windowManager/actions.ts';
+export type { WindowAction } from '@/features/desktop/windowManager/actions.ts';

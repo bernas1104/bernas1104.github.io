@@ -1,7 +1,9 @@
-import type { AppDescriptor, AppId } from '../types';
-import { useWindowManager } from '../windowManager';
-import { DesktopIcon } from './DesktopIcon';
-import { Window } from './Window';
+import type { AppDescriptor, AppId } from '@/features/desktop/types.ts';
+import { useWindowManager } from '@/features/desktop/windowManager/index.ts';
+import { DesktopIcon } from '@/features/desktop/components/DesktopIcon.tsx';
+import { Window } from '@/features/desktop/components/Window.tsx';
+import { Taskbar } from '@/features/desktop/components/Taskbar.tsx';
+import { StartMenu } from '@/features/desktop/components/StartMenu.tsx';
 
 const bernasOsApp: AppDescriptor = {
   id: '1' as AppId,
@@ -19,12 +21,7 @@ export function Desktop() {
     <div
       className="desktop bg-desktop min-h-screen"
       role="presentation"
-      onPointerDown={(e: React.PointerEvent<HTMLDivElement>) =>
-        e.stopPropagation()
-      }
-      onClick={(e: React.MouseEvent<HTMLDivElement>) => {
-        if (e.target === e.currentTarget) dispatch({ type: 'CLEAR_FOCUS' });
-      }}
+      onClick={() => dispatch({ type: 'CLEAR_FOCUS' })}
     >
       {Array.from(state.windows.values())
         .sort((a, b) => a.zIndex - b.zIndex)
@@ -42,6 +39,8 @@ export function Desktop() {
         })}
 
       <DesktopIcon app={bernasOsApp} />
+      <Taskbar />
+      <StartMenu />
     </div>
   );
 }

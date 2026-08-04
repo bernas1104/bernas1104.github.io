@@ -6,6 +6,7 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 import prettier from 'eslint-config-prettier'
+import importConventions from './eslint/rules/import-conventions.mjs'
 
 export default defineConfig([
   globalIgnores(['dist', 'coverage']),
@@ -27,6 +28,19 @@ export default defineConfig([
       react: {
         version: '19.2.8',
       },
+    },
+  },
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    plugins: {
+      local: {
+        rules: {
+          'import-conventions': importConventions,
+        },
+      },
+    },
+    rules: {
+      'local/import-conventions': 'error',
     },
   },
 ])

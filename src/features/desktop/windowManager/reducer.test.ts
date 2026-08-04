@@ -350,7 +350,7 @@ describe('windowsReducer', () => {
       expect(next.focusedWindowId).toBeNull();
     });
 
-    it('leaves windowsOpenedCount unchanged when a window is closed', () => {
+    it('windowsOpenedCount is decreased by 1 when a window is closed', () => {
       const window = makeWindow({ id: makeWindowId('win-1') });
       const state = makeState({
         windows: new Map([[window.id, window]]),
@@ -362,7 +362,7 @@ describe('windowsReducer', () => {
         windowId: window.id,
       });
 
-      expect(next.windowsOpenedCount).toBe(3);
+      expect(next.windowsOpenedCount).toBe(2);
     });
 
     it('preserves focus when a different window is closed', () => {
