@@ -9,6 +9,7 @@ import type {
   WindowInstance,
 } from '@/features/desktop/types.ts';
 import { makeWindow, makeWindowId } from '@/features/desktop/testUtils.ts';
+import { StartMenuContext } from '@/features/desktop/StartMenuContext.tsx';
 
 const makeState = (overrides: Partial<DesktopState> = {}): DesktopState => ({
   windows: new Map<WindowId, WindowInstance>(),
@@ -22,7 +23,15 @@ function renderDesktop(state: DesktopState = makeState()) {
   const dispatch = vi.fn<(action: WindowAction) => void>();
   const utils = render(
     <WindowManagerContext.Provider value={{ state, dispatch }}>
-      <Desktop />
+      <StartMenuContext.Provider
+        value={{
+          isStartMenuOpen: false,
+          onStartMenuToggle: vi.fn(),
+          closeStartMenu: vi.fn(),
+        }}
+      >
+        <Desktop />
+      </StartMenuContext.Provider>
     </WindowManagerContext.Provider>,
   );
   return { ...utils, dispatch };
@@ -72,10 +81,13 @@ describe('Desktop', () => {
       ]),
     });
 
-    const { getByText, container } = renderDesktop(state);
+    const { container } = renderDesktop(state);
 
-    expect(getByText('Window One')).toBeInTheDocument();
-    expect(getByText('Window Two')).toBeInTheDocument();
+    const titleTexts = [...container.querySelectorAll('.title-bar-text')].map(
+      (el) => el.textContent,
+    );
+    expect(titleTexts).toContain('Window One');
+    expect(titleTexts).toContain('Window Two');
     expect(container.querySelectorAll('.window')).toHaveLength(2);
   });
 
@@ -97,10 +109,13 @@ describe('Desktop', () => {
       ]),
     });
 
-    const { container, queryByText } = renderDesktop(state);
+    const { container } = renderDesktop(state);
 
     expect(container.querySelectorAll('.window')).toHaveLength(1);
-    expect(queryByText('Hidden')).not.toBeInTheDocument();
+    const titleTexts = [...container.querySelectorAll('.title-bar-text')].map(
+      (el) => el.textContent,
+    );
+    expect(titleTexts).not.toContain('Hidden');
   });
 
   it('renders windows ordered by ascending zIndex (lowest zIndex first in DOM)', () => {

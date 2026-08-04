@@ -38,8 +38,8 @@ export function DesktopIcon({ app }: { app: AppDescriptor }) {
         <img
           src={ComputerExplorerIcon}
           alt={'My Computer Icon'}
-          width={32}
-          height={32}
+          width={48}
+          height={48}
         />
       </div>
       <div

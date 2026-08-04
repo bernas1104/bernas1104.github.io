@@ -3,11 +3,14 @@ import { createRoot } from 'react-dom/client';
 import '@/index.css';
 import App from '@/App.tsx';
 import { WindowManagerProvider } from '@/features/desktop/windowManager/WindowManagerProvider.tsx';
+import { StartMenuProvider } from '@/features/desktop/StartMenuProvider.tsx';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <WindowManagerProvider>
-      <App />
+      <StartMenuProvider>
+        <App />
+      </StartMenuProvider>
     </WindowManagerProvider>
   </StrictMode>,
 );
