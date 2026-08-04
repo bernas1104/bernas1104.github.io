@@ -19,6 +19,8 @@ The window manager is a Redux-like state layer built on `useReducer` + Context
 - **Maximize toggle** (open ⇄ maximized)
 - **Desktop icons**: click to select (Win98 dashed highlight), double-click or Enter to open an app
 - **Move / resize** windows (resize enforces a minimum size)
+- **Taskbar** with a Start button, one entry per window (click focuses, restores, or minimizes depending on state), and a live clock
+- **Start menu** that opens apps and closes on outside click or Escape
 - Focus falls back to the next-highest visible window when the focused one is minimized
 
 The Win98 look comes from [98.css](https://jdan.github.io/98.css/) for widget chrome,
@@ -43,32 +45,49 @@ layered with Tailwind CSS v4 utilities driven by Win98 design tokens.
 src/
 ├── App.tsx                  # Root component
 ├── App.test.tsx
-├── main.tsx                 # React entry point (mounts App inside WindowManagerProvider)
+├── main.tsx                 # React entry point (mounts App inside WindowManagerProvider + StartMenuProvider)
 ├── index.css                # CSS entry: 98.css → tokens → global → tailwind
 ├── assets/
-│   └── icons/               # Desktop icon artwork (computer_explorer-*.png)
+│   └── icons/               # Desktop icon artwork (computer_explorer-*.png, windows-4.png)
 ├── common/
 │   ├── types.ts             # Brand, Position, Size, IconName
 │   └── types.test.ts        # Type-level tests (expect-type)
 ├── features/
 │   └── desktop/
-│       ├── types.ts         # AppId, WindowId, AppDescriptor, WindowInstance, DesktopState
+│       ├── types.ts               # AppId, WindowId, AppDescriptor, WindowInstance, DesktopState
 │       ├── types.test.ts
-│       ├── components/      # Desktop chrome UI
-│       │   ├── Desktop.tsx              # Desktop background; hosts icons + windows
+│       ├── StartMenuContext.tsx   # Start menu { isStartMenuOpen, close, toggle } context
+│       ├── StartMenuProvider.tsx  # useState-backed provider for the start menu
+│       ├── testUtils.ts            # Shared test factories (makeApp, makeWindow, makeAppId, makeWindowId)
+│       ├── components/             # Desktop chrome UI
+│       │   ├── Desktop.tsx              # Desktop background; hosts icons + windows + taskbar + start menu
 │       │   ├── Desktop.test.tsx
 │       │   ├── DesktopIcon.tsx          # Selectable app icon (click / double-click / Enter)
 │       │   ├── DesktopIcon.test.tsx
 │       │   ├── Window.tsx              # Chrome: position/size/zIndex, focus, resize handle
 │       │   ├── Window.test.tsx
 │       │   ├── TitleBar.tsx            # Title + Minimize/Maximize/Restore/Close; drives drag
-│       │   └── TitleBar.test.tsx
-│       ├── hooks/           # Pointer interaction hooks
+│       │   ├── TitleBar.test.tsx
+│       │   ├── Taskbar.tsx             # Bottom bar: Start button, window buttons, clock
+│       │   ├── Taskbar.test.tsx
+│       │   ├── StartMenu.tsx           # Start popup; closes on outside click / Escape
+│       │   ├── StartMenu.test.tsx
+│       │   ├── Clock.tsx               # Live 24h HH:MM clock (60s interval)
+│       │   └── Clock.test.tsx
+│       ├── hooks/           # Pointer / interaction hooks
 │       │   ├── index.ts                 # Barrel: useDrag, useResize
 │       │   ├── useDrag.ts               # Pointer-capture drag (cumulative deltas)
 │       │   ├── useDrag.test.ts
 │       │   ├── useResize.ts             # Resize via useDrag (delta → new Size)
-│       │   └── useResize.test.ts
+│       │   ├── useResize.test.ts
+│       │   ├── useOutsideClick.ts       # Calls back on pointerdown outside a ref
+│       │   ├── useOutsideClick.test.ts
+│       │   ├── useStartMenu.ts          # Start menu context consumer hook
+│       │   └── useStartMenu.test.tsx
+│       ├── utils/          # Pure helpers
+│       │   ├── index.ts                 # Barrel: resolveTaskbarAction
+│       │   ├── resolveTaskbarAction.ts  # (window, focusedId) → WindowAction
+│       │   └── resolveTaskbarAction.test.ts
 │       └── windowManager/   # Reducer + Context state layer
 │           ├── index.ts                 # Barrel: public API
 │           ├── actions.ts               # WindowAction union + action creators
@@ -79,8 +98,8 @@ src/
 │           ├── WindowManagerProvider.tsx
 │           └── useWindowManager.ts      # Consumer hook
 ├── styles/
-│   ├── tokens.css           # Win98 design tokens (CSS custom properties)
-│   └── global.css           # Desktop chrome: overflow lock, resize handle, icon selection
+│   ├── tokens.css           # Win98 design tokens (palette, type, spacing, z-index)
+│   └── global.css           # Desktop chrome: overflow lock, resize handle, icon selection, taskbar, start menu, clock
 └── test/
     └── setup.ts             # Vitest setup (jest-dom matchers)
 ```
@@ -125,10 +144,10 @@ Then open the printed local URL (default http://localhost:5173).
 
 Code is organized into feature modules under `src/features/<feature>/`. Each feature
 owns its domain model in `types.ts` (with colocated type-level tests in `types.test.ts`)
-and grows components/hooks as needed. Features can nest sub-modules —
+and grows components/hooks/utils as needed. Features can nest sub-modules —
 `src/features/desktop/` owns the desktop domain and contains the `windowManager/`
-sub-module. Every module exposes its public API through a barrel `index.ts`; import
-from the barrel rather than internal files:
+(state) and `utils/` (pure helpers) sub-modules. Every module exposes its public API
+through a barrel `index.ts`; import from the barrel rather than internal files:
 
 ```ts
 import { useWindowManager, openApp } from '@/features/desktop/windowManager';
@@ -148,18 +167,41 @@ The window manager follows a Redux-like pattern without Redux:
   a missing or minimized window) return the same state reference. Exhaustiveness is
   enforced at compile time via `action satisfies never` in the `default` branch. It
   also exports `MIN_WINDOW_WIDTH` / `MIN_WINDOW_HEIGHT` — `RESIZE_WINDOW` clamps to
-  them — and `OPEN_APP` cascades new windows (`(size % 8) * 24`px offset from 100,100).
-  `CLEAR_FOCUS` sets `focusedWindowId` back to `null` and returns the same state
-  reference when nothing is focused.
+  them — and `OPEN_APP` cascades new windows (`(windowsOpenedCount % 8) * 24`px offset
+  from 100,100) while incrementing `windowsOpenedCount`; `CLOSE_WINDOW` decrements it
+  so the cascade offset stays correct as windows open and close. `CLEAR_FOCUS` sets
+  `focusedWindowId` back to `null` and returns the same state reference when nothing
+  is focused.
 - **`WindowManagerProvider.tsx`** wires `useReducer(windowsReducer, initialWindowsState)`
   into a Context, exposing `{ state, dispatch }`. It is mounted in `src/main.tsx`,
-  wrapping `<App />`.
+  wrapping `<App />` together with a nested `StartMenuProvider`.
 - **`useWindowManager.ts`** consumes the context and throws if used outside the provider.
+
+### Start menu state
+
+The start menu is a separate, simpler state layer (not part of the window manager
+reducer):
+
+- **`StartMenuContext.tsx`** / **`StartMenuProvider.tsx`** hold a single `useState`
+  boolean (`isStartMenuOpen`) and expose `{ isStartMenuOpen, closeStartMenu,
+  onStartMenuToggle }`. The provider is mounted in `src/main.tsx` inside the
+  `WindowManagerProvider`.
+- **`useStartMenu.ts`** consumes the context and throws if used outside the provider.
+
+### Pure helpers
+
+`src/features/desktop/utils/` holds framework-agnostic helpers exposed through a
+barrel `index.ts`:
+
+- **`resolveTaskbarAction(window, focusedWindowId)`** maps a taskbar-button click to
+  the right `WindowAction`: `RESTORE_WINDOW` if the window is minimized, else
+  `FOCUS_WINDOW` if it isn't focused, else `MINIMIZE_WINDOW`.
 
 ### Components & interaction hooks
 
 The presentation layer lives in `src/features/desktop/components/` and
-`src/features/desktop/hooks/`, consuming the window manager via `useWindowManager`:
+`src/features/desktop/hooks/`, consuming the window manager via `useWindowManager`
+and the start menu via `useStartMenu`:
 
 - **`Window.tsx`** renders the `.window` chrome, applying `position`, `size`, and
   `zIndex` from `WindowInstance` (maximized fills the viewport). It dispatches
@@ -170,18 +212,33 @@ The presentation layer lives in `src/features/desktop/components/` and
   controls (dispatching the matching actions) and drives window dragging via `useDrag`.
   It adds the `inactive` class when unfocused and stops propagation on controls so
   clicking a button doesn't start a drag.
-- **`Desktop.tsx`** renders the desktop background, hosts a `DesktopIcon`, and renders
-  each non-minimized window sorted by z-index. Clicking the background dispatches
-  `CLEAR_FOCUS`.
+- **`Desktop.tsx`** renders the desktop background and hosts the `DesktopIcon`,
+  non-minimized windows (sorted by z-index), the `Taskbar`, and the `StartMenu`. Any
+  click on the background dispatches `CLEAR_FOCUS`; child components stop propagation
+  themselves so their clicks don't bubble up.
 - **`DesktopIcon.tsx`** is a keyboard-focusable app icon (`role="button"`,
-  `tabIndex={0}`): single click selects it (Win98 dashed outline), double-click or
-  Enter dispatches `OPEN_APP`. Icon artwork lives in `src/assets/icons/`.
+  `tabIndex={0}`, 48×48 artwork): single click selects it (Win98 dashed outline),
+  double-click or Enter dispatches `OPEN_APP`. Icon artwork lives in `src/assets/icons/`.
+- **`Taskbar.tsx`** is the fixed bottom bar: a Start button that toggles the start
+  menu, one button per window (sorted by ascending z-index, focused window gets the
+  `focused` class), and a `Clock`. Clicking a window button dispatches the action
+  returned by `resolveTaskbarAction`.
+- **`StartMenu.tsx`** is the start menu popup (sidebar + items), shown when
+  `isStartMenuOpen`. It closes on outside pointerdown (via `useOutsideClick`) and on
+  Escape; menu items dispatch `OPEN_APP` and then close. It stacks with the
+  `--win98-z-index-start-menu` token when no window is focused, otherwise it stacks
+  naturally with the windows.
+- **`Clock.tsx`** is a live 24-hour `HH:MM` clock that updates on a 60-second
+  interval (`aria-label="Current time"`).
 - **`useDrag`** is a pointer-based drag hook: it captures the pointer, reports the
   cumulative delta from drag start on each `pointermove`, signals drag state changes
   via an optional callback, is a no-op when the window is maximized, and cleans up
   listeners (signaling drag end) if the component unmounts mid-drag.
 - **`useResize`** wraps `useDrag`, converting the cumulative delta into a new `Size`
   (`window.size + delta`). Its callback is `onResize(windowId, size: Size)`.
+- **`useOutsideClick`** invokes a callback when a `pointerdown` lands outside the
+  referenced element. It's gated by an `enabled` flag and keeps the latest callback
+  via a ref so re-renders don't re-subscribe.
 
 ### Domain model
 
@@ -195,12 +252,16 @@ at the boundary (`crypto.randomUUID() as WindowId`).
 
 - **98.css** provides the Windows 98 widget chrome (`.window`, `.title-bar`,
   `.window-body`, buttons, etc.).
-- **`src/styles/tokens.css`** centralizes the Win98 palette, typography, and spacing as
-  `--win98-*` CSS custom properties. Components reference tokens, never raw hex colors.
+- **`src/styles/tokens.css`** centralizes the Win98 palette, typography (font stack
+  begins with `'Pixelated MS Sans Serif'`), spacing scale, and a z-index scale
+  (`--win98-z-index-start-menu`) as `--win98-*` CSS custom properties. Components
+  reference tokens, never raw hex colors.
 - **`src/styles/global.css`** adds desktop chrome: body overflow lock, `.desktop`
-  background layer, `.window-resize-handle`, and the desktop-icon selection styles
-  (`.desktop-icon-container`, `.icon-selected`, `.icon-text-selected`). Desktop icon
-  labels use the `--win98-desktop-text` token.
+  background layer, `.window-resize-handle`, the desktop-icon selection styles
+  (`.desktop-icon-container`, `.icon-selected`, `.icon-text-selected`), the taskbar /
+  start-menu / clock chrome (`.taskbar`, `.start-menu`, `.clock`, …), and a global
+  `font-family: var(--win98-font)`. Desktop icon labels use the `--win98-desktop-text`
+  token.
 - **`src/index.css`** maps those tokens into Tailwind v4 via a `@theme` block, so
   utilities like `bg-desktop`, `text-window-text`, and `font-win98` work. Import order
   matters: `98.css` → `tokens.css` → `global.css` → `tailwindcss`.
@@ -208,22 +269,30 @@ at the boundary (`crypto.randomUUID() as WindowId`).
 ## Testing
 
 - Vitest config lives in `vite.config.ts` (jsdom environment); tests are colocated with
-  source as `*.test.ts` / `*.test.tsx`.
-- **Component tests** (`Window`, `TitleBar`, `Desktop`, `DesktopIcon`) use
-  `@testing-library/react` + `@testing-library/jest-dom`, rendering through a
-  `WindowManagerContext.Provider` with a `vi.fn` dispatch to assert dispatched actions
-  and rendered chrome.
-- **Hook tests** (`useDrag`, `useResize`) use `renderHook` with a manually created DOM
-  element ref and synthetic `PointerEvent`s to cover cumulative deltas, pointer capture,
-  drag-state callbacks, unmount cleanup, and maximized no-ops.
+  source as `*.test.ts` / `*.test.tsx`. Shared test factories live in
+  `src/features/desktop/testUtils.ts` (`makeApp`, `makeWindow`, `makeAppId`,
+  `makeWindowId`); each component test file defines its own local `makeState`.
+- **Component tests** (`Window`, `TitleBar`, `Desktop`, `DesktopIcon`, `Taskbar`,
+  `StartMenu`, `Clock`) use `@testing-library/react` + `@testing-library/jest-dom`,
+  rendering through a `WindowManagerContext.Provider` with a `vi.fn` dispatch to
+  assert dispatched actions and rendered chrome. `Desktop`, `Taskbar`, and `StartMenu`
+  tests additionally wrap in a `StartMenuContext.Provider`; `Clock` tests use fake
+  timers to drive the 60-second tick and assert interval cleanup.
+- **Hook tests** (`useDrag`, `useResize`, `useOutsideClick`, `useStartMenu`) use
+  `renderHook` with a manually created DOM element ref and synthetic `PointerEvent`s
+  to cover cumulative deltas, pointer capture, drag-state callbacks, unmount cleanup,
+  and maximized no-ops. `useOutsideClick` also covers the `enabled` flag and listener
+  (re)subscription; `useStartMenu` asserts it throws outside a `StartMenuProvider`.
 - **Type-level tests** use `expect-type` for compile-time assertions (no runtime logic).
 - **Action creator tests** (`actions.test.ts`) assert each creator's output and, via
   `expect-type`, that every creator returns a `WindowAction` and that the union is
   discriminated by the expected type literals.
+- **Pure helper tests** (`utils/resolveTaskbarAction.test.ts`) assert the helper's
+  output per (window state, focused id) combination and, via `expect-type`, that its
+  return type is exactly `WindowAction`.
 - **Reducer unit tests** exercise the pure reducer directly (no React render), using
-  small factory helpers (`makeApp`/`makeWindow`/`makeState`) and mocking
-  `crypto.randomUUID` for deterministic IDs. No-op cases are asserted with referential
-  equality (`expect(next).toBe(state)`).
+  the shared factory helpers and mocking `crypto.randomUUID` for deterministic IDs.
+  No-op cases are asserted with referential equality (`expect(next).toBe(state)`).
 
 Run a single file:
 
