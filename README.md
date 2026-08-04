@@ -150,7 +150,7 @@ and grows components/hooks/utils as needed. Features can nest sub-modules —
 through a barrel `index.ts`; import from the barrel rather than internal files:
 
 ```ts
-import { useWindowManager, openApp } from '@/features/desktop/windowManager';
+import { useWindowManager, openApp } from '@/features/desktop/windowManager/index.ts';
 ```
 
 ### Window manager (reducer + Context)
@@ -228,8 +228,9 @@ and the start menu via `useStartMenu`:
   Escape; menu items dispatch `OPEN_APP` and then close. It stacks with the
   `--win98-z-index-start-menu` token when no window is focused, otherwise it stacks
   naturally with the windows.
-- **`Clock.tsx`** is a live 24-hour `HH:MM` clock that updates on a 60-second
-  interval (`aria-label="Current time"`).
+- **`Clock.tsx`** is a live 24-hour `HH:MM` clock that aligns its first update to
+  the next minute boundary, then refreshes on a 60-second interval
+  (`aria-label="Current time"`).
 - **`useDrag`** is a pointer-based drag hook: it captures the pointer, reports the
   cumulative delta from drag start on each `pointermove`, signals drag state changes
   via an optional callback, is a no-op when the window is maximized, and cleans up
@@ -273,11 +274,14 @@ at the boundary (`crypto.randomUUID() as WindowId`).
   `src/features/desktop/testUtils.ts` (`makeApp`, `makeWindow`, `makeAppId`,
   `makeWindowId`); each component test file defines its own local `makeState`.
 - **Component tests** (`Window`, `TitleBar`, `Desktop`, `DesktopIcon`, `Taskbar`,
-  `StartMenu`, `Clock`) use `@testing-library/react` + `@testing-library/jest-dom`,
+  `StartMenu`) use `@testing-library/react` + `@testing-library/jest-dom`,
   rendering through a `WindowManagerContext.Provider` with a `vi.fn` dispatch to
-  assert dispatched actions and rendered chrome. `Desktop`, `Taskbar`, and `StartMenu`
-  tests additionally wrap in a `StartMenuContext.Provider`; `Clock` tests use fake
-  timers to drive the 60-second tick and assert interval cleanup.
+  assert dispatched actions and rendered chrome — the provider is required only
+  for components that consume that context. `Desktop`, `Taskbar`, and `StartMenu`
+  tests additionally wrap in a `StartMenuContext.Provider`. `Clock` tests are
+  separate: they render `Clock` directly (it consumes no context), using fake
+  timers to drive the minute-boundary update and the 60-second refresh and to
+  assert timer cleanup on unmount.
 - **Hook tests** (`useDrag`, `useResize`, `useOutsideClick`, `useStartMenu`) use
   `renderHook` with a manually created DOM element ref and synthetic `PointerEvent`s
   to cover cumulative deltas, pointer capture, drag-state callbacks, unmount cleanup,

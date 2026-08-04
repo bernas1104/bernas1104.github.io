@@ -40,5 +40,6 @@
   --win98-space-16: 16px;
 
   /* --- Z-index scale --- */
+  --win98-z-index-taskbar: 9999;
   --win98-z-index-start-menu: 10000;
 }

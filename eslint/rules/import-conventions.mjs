@@ -31,6 +31,10 @@ function toAlias(srcRoot, abs) {
   return `@/${toPosix(rel)}`;
 }
 
+function toSourceString(value) {
+  return `'${value.replaceAll('\\', '\\\\').replaceAll("'", "\\'")}'`;
+}
+
 export default {
   meta: {
     type: 'problem',
@@ -72,9 +76,7 @@ export default {
           fix: (fixer) =>
             fixer.replaceText(
               node.source,
-              JSON.stringify(
-                toAlias(srcRoot, resolveWithExtension(abs) ?? abs),
-              ),
+              toSourceString(toAlias(srcRoot, resolveWithExtension(abs) ?? abs)),
             ),
         });
         return;
@@ -88,10 +90,10 @@ export default {
           fix: (fixer) => {
             const fixed = resolveWithExtension(abs);
             if (!fixed) return null;
-            return fixer.replaceText(
-              node.source,
-              JSON.stringify(toAlias(srcRoot, fixed)),
-            );
+            const specifier = isInside(srcRoot, fixed)
+              ? toAlias(srcRoot, fixed)
+              : toPosix(path.relative(fileDir, fixed));
+            return fixer.replaceText(node.source, toSourceString(specifier));
           },
         });
       }

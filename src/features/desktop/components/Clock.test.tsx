@@ -67,25 +67,67 @@ describe('Clock', () => {
     expect(after).toMatch(/^\d{2}:\d{2}$/);
   });
 
-  it('schedules exactly one interval on mount', () => {
+  it('updates at the next minute boundary when mounted at a nonzero second', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 0, 1, 10, 30, 15));
+
+    const { getByLabelText } = render(<Clock />);
+    const before = getByLabelText('Current time').textContent;
+
+    act(() => {
+      vi.advanceTimersByTime(44_999);
+    });
+    expect(getByLabelText('Current time').textContent).toBe(before);
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(getByLabelText('Current time').textContent).toMatch(/^10:31$/);
+  });
+
+  it('schedules a boundary timeout on mount and one interval after it fires', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 0, 1, 10, 30, 0));
+    const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
     const setIntervalSpy = vi.spyOn(globalThis, 'setInterval');
 
     render(<Clock />);
+
+    expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 60_000);
+    expect(setIntervalSpy).not.toHaveBeenCalled();
+
+    act(() => {
+      vi.advanceTimersByTime(60_000);
+    });
 
     expect(setIntervalSpy).toHaveBeenCalledTimes(1);
     expect(setIntervalSpy).toHaveBeenCalledWith(expect.any(Function), 60_000);
   });
 
-  it('clears the interval on unmount (no timer leak)', () => {
+  it('clears the boundary timeout and interval on unmount (no timer leak)', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 0, 1, 10, 30, 0));
+    const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
     const setIntervalSpy = vi.spyOn(globalThis, 'setInterval');
+    const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout');
     const clearIntervalSpy = vi.spyOn(globalThis, 'clearInterval');
 
     const { unmount } = render(<Clock />);
-    const handle = setIntervalSpy.mock.results[0]?.value;
-    expect(handle).toBeDefined();
+    const timeoutCall = setTimeoutSpy.mock.calls.findIndex(
+      ([, delay]) => delay === 60_000,
+    );
+    const timeoutHandle = setTimeoutSpy.mock.results[timeoutCall]?.value;
+    expect(timeoutHandle).toBeDefined();
+
+    act(() => {
+      vi.advanceTimersByTime(60_000);
+    });
+    const intervalHandle = setIntervalSpy.mock.results[0]?.value;
+    expect(intervalHandle).toBeDefined();
 
     unmount();
 
-    expect(clearIntervalSpy).toHaveBeenCalledWith(handle);
+    expect(clearTimeoutSpy).toHaveBeenCalledWith(timeoutHandle);
+    expect(clearIntervalSpy).toHaveBeenCalledWith(intervalHandle);
   });
 });

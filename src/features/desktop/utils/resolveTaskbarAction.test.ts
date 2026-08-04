@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { expectTypeOf } from 'expect-type';
-import { resolveTaskbarAction } from '@/features/desktop/utils/resolveTaskbarAction.ts';
+import { resolveTaskbarAction } from '@/features/desktop/utils/index.ts';
 import type { WindowAction } from '@/features/desktop/windowManager/index.ts';
 import type {
   AppId,
@@ -34,6 +34,15 @@ describe('resolveTaskbarAction', () => {
   it('returns RESTORE_WINDOW when the window is minimized even if it is focused', () => {
     const window = makeWindow({ ...baseWindow, state: 'minimized' });
     expect(resolveTaskbarAction(window, winId)).toEqual({
+      type: 'RESTORE_WINDOW',
+      windowId: winId,
+    });
+  });
+
+  it('returns RESTORE_WINDOW when the minimized window is not focused', () => {
+    const window = makeWindow({ ...baseWindow, state: 'minimized' });
+    const other: WindowId = makeWindowId('win-2');
+    expect(resolveTaskbarAction(window, other)).toEqual({
       type: 'RESTORE_WINDOW',
       windowId: winId,
     });
@@ -76,6 +85,14 @@ describe('resolveTaskbarAction', () => {
     const window = makeWindow({ ...baseWindow, state: 'maximized' });
     const other: WindowId = makeWindowId('win-2');
     expect(resolveTaskbarAction(window, other)).toEqual({
+      type: 'FOCUS_WINDOW',
+      windowId: winId,
+    });
+  });
+
+  it('returns FOCUS_WINDOW when the maximized window is open and no window is focused', () => {
+    const window = makeWindow({ ...baseWindow, state: 'maximized' });
+    expect(resolveTaskbarAction(window, null)).toEqual({
       type: 'FOCUS_WINDOW',
       windowId: winId,
     });

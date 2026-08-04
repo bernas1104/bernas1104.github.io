@@ -97,6 +97,7 @@ body {
   background-color: var(--win98-button-face);
   display: flex;
   align-items: center;
+  z-index: var(--win98-z-index-taskbar);
 }
 
 .taskbar-buttons {
