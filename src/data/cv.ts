@@ -1,23 +1,11 @@
 import type { Cv } from '@/data/types.ts';
+import { contact } from '@/data/contact.ts';
+import { about } from '@/data/about.ts';
 
 // PLACEHOLDER
 export const cv: Cv = {
-  about: {
-    name: 'Your Name',
-    role: 'Your Role',
-    summary: 'A short summary about you.',
-  },
-  contact: {
-    email: 'you@example.com',
-    location: 'Your City, Country',
-    socials: [
-      {
-        label: 'GitHub',
-        url: 'https://github.com/' as Cv['contact']['socials'][number]['url'],
-        icon: 'github',
-      },
-    ],
-  },
+  about,
+  contact,
   experience: [
     {
       title: 'Your Title',
