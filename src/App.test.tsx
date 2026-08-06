@@ -1,12 +1,19 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '@/App.tsx';
-import { usePrefersReducedMotion } from '@/features/boot/usePrefersReducedMotion.ts';
-import { BOOT_MIN_DURATION_MS } from '@/features/boot/config.ts';
+import {
+  BOOT_MIN_DURATION_MS,
+  usePrefersReducedMotion,
+} from '@/features/boot/index.ts';
 
-vi.mock('@/features/boot/usePrefersReducedMotion.ts', () => ({
-  usePrefersReducedMotion: vi.fn(),
-}));
+vi.mock('@/features/boot/index.ts', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@/features/boot/index.ts')>();
+  return {
+    ...actual,
+    usePrefersReducedMotion: vi.fn(),
+  };
+});
 
 const mockedUsePrefersReducedMotion = vi.mocked(usePrefersReducedMotion);
 

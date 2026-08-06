@@ -1,6 +1,6 @@
 import { fireEvent, render } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { BootScreen } from '@/features/boot/BootScreen.tsx';
+import { BootScreen } from '@/features/boot/index.ts';
 
 function renderBootScreen(prefersReducedMotion = false) {
   const onSkip = vi.fn();

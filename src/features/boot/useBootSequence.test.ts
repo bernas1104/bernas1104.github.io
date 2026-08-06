@@ -144,6 +144,12 @@ describe('useBootSequence', () => {
     expect(result.current.status).toBe('dismissed');
   });
 
+  it('does not persist the played flag when starting with skipBoot', () => {
+    window.history.replaceState({}, '', '/?skipBoot');
+    renderHook(() => useBootSequence({ environment: production }));
+    expect(sessionStorage.getItem(BOOT_PLAYED_SESSION_KEY)).toBeNull();
+  });
+
   it('does not schedule a timeout when already dismissed', () => {
     sessionStorage.setItem(BOOT_PLAYED_SESSION_KEY, 'true');
     const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');

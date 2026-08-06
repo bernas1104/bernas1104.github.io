@@ -9,7 +9,10 @@ export type BootScreenProps = {
 export function BootScreen({ onSkip, prefersReducedMotion }: BootScreenProps) {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === ' ') onSkip();
+      if (event.key === ' ') {
+        event.preventDefault();
+        onSkip();
+      }
       if (event.key === 'Enter') onSkip();
     };
 

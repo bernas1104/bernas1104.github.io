@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer } from 'react';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
 import {
   BOOT_MIN_DURATION_MS,
   BOOT_PLAYED_SESSION_KEY,
@@ -52,6 +52,7 @@ export function useBootSequence(
   });
 
   const status = state.status;
+  const initializedWhileBooting = useRef(status === 'booting');
   const skip = useCallback(() => dispatch(skipBoot()), [dispatch]);
 
   useEffect(() => {
@@ -66,7 +67,11 @@ export function useBootSequence(
 
   useEffect(() => {
     const isProduction = !environment?.isDevelopment && !environment?.isTest;
-    if (status === 'dismissed' && isProduction)
+    if (
+      status === 'dismissed' &&
+      initializedWhileBooting.current &&
+      isProduction
+    )
       sessionStorage.setItem(BOOT_PLAYED_SESSION_KEY, 'true');
   }, [status, environment?.isDevelopment, environment?.isTest]);
 

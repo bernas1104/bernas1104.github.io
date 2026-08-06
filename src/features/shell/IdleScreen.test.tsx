@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { IdleScreen } from '@/features/shell/IdleScreen.tsx';
+import { IdleScreen } from '@/features/shell/index.ts';
 
 describe('IdleScreen', () => {
   it('renders a status region with an accessible name', () => {
