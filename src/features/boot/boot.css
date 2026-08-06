@@ -1,0 +1,96 @@
+.boot-screen {
+  background: linear-gradient(
+    to bottom,
+    var(--win98-boot-sky-top),
+    var(--win98-boot-sky-bottom)
+  );
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: var(--win98-space-16);
+}
+
+.boot-cloud {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    var(--win98-boot-cloud) 0%,
+    transparent 70%
+  );
+}
+
+.boot-cloud-1 {
+  width: 200px;
+  height: 100px;
+  top: 20%;
+  left: 10%;
+}
+
+.boot-cloud-2 {
+  width: 300px;
+  height: 150px;
+  top: 30%;
+  left: 50%;
+}
+
+.boot-cloud-3 {
+  width: 150px;
+  height: 75px;
+  top: 60%;
+  left: 30%;
+}
+
+.boot-wordmark {
+  font-family: var(--win98-font);
+  font-size: 2rem;
+  color: var(--win98-window-frame);
+  text-shadow:
+    1px 1px var(--win98-button-highlight),
+    -1px -1px var(--win98-button-shadow);
+  z-index: 1;
+}
+
+.boot-spinner {
+  display: grid;
+  grid-template-columns: repeat(2, var(--win98-space-16));
+  grid-template-rows: repeat(2, var(--win98-space-16));
+  gap: var(--win98-space-2);
+}
+
+.boot-spinner-block {
+  background-color: var(--win98-window-frame);
+  animation: boot-throb 1.2s steps(1) infinite;
+}
+
+.boot-spinner-block:nth-child(2) {
+  animation-delay: 0.3s;
+}
+.boot-spinner-block:nth-child(3) {
+  animation-delay: 0.6s;
+}
+.boot-spinner-block:nth-child(4) {
+  animation-delay: 0.9s;
+}
+
+@keyframes boot-throb {
+  0%,
+  100% {
+    background-color: var(--win98-button-shadow);
+  }
+  50% {
+    background-color: var(--win98-window-frame);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boot-spinner-block {
+    animation: none;
+  }
+}

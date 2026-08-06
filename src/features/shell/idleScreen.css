@@ -1,0 +1,15 @@
+.idle-screen {
+  background: var(--win98-desktop);
+  color: var(--win98-desktop-text);
+  font-size: 2rem;
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  user-select: none;
+  cursor: default;
+}
