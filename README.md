@@ -60,6 +60,14 @@ src/
 ├── common/
 │   ├── types.ts             # Brand, Position, Size, IconName
 │   └── types.test.ts        # Type-level tests (expect-type)
+├── data/                    # Personal-site content data model + placeholder data
+│   ├── types.ts             # About, Cv, Project, Contact, Skill/SkillGroup, Timeline*, Link, SocialLink, Url, MonthYear
+│   ├── types.test.ts        # Type-level tests (expect-type)
+│   ├── about.ts             # Placeholder About content
+│   ├── contact.ts           # Placeholder Contact content
+│   ├── cv.ts                # Placeholder Cv content (about + contact + experience + education + skills)
+│   ├── projects.ts          # Placeholder Project[] content
+│   └── index.ts             # Barrel: export type for types, then data re-exports
 ├── features/
 │   ├── boot/                # Boot / splash screen sequence
 │   │   ├── types.ts                # BootStatus, BootState, BootEnvironment, BootSequenceConfig
@@ -184,6 +192,30 @@ internal files:
 ```ts
 import { useWindowManager, openApp } from '@/features/desktop/windowManager/index.ts';
 ```
+
+### Content data model
+
+The personal-site content lives in `src/data/` — a top-level module alongside
+`src/common/` (not a feature module). It's framework-agnostic content intended to be
+consumed by future UI features, decoupled from the window/desktop domain:
+
+- **`types.ts`** defines the content domain. Two branded string types — `Url` and
+  `MonthYear` (built on `Brand` from `@/common/types.ts`) — keep URL- and date-shaped
+  strings type-distinct. The core types are `About`, `Level`
+  (`'beginner' | 'intermediate' | 'advanced' | 'expert'`), `Skill` / `SkillGroup`,
+  `Period`, `TimelineEntry`, `ExperienceEntry` (extends `TimelineEntry` with
+  `description` / `bullets` / `location`), `EducationEntry` (an alias of
+  `TimelineEntry`), `Link`, `Project`, `SocialLink` (carrying an `IconName` from
+  `@/common/types.ts`), `Contact`, and `Cv` (which bundles `About` + `Contact` +
+  experience + education + skills).
+- **`types.test.ts`** is a colocated type-level test using `expect-type` /
+  `expectTypeOf` to assert each type's shape and the branded / extension
+  relationships above. No runtime logic.
+- **`about.ts`** / **`contact.ts`** / **`cv.ts`** / **`projects.ts`** export
+  placeholder content (each marked with a `// PLACEHOLDER` comment) to be replaced
+  with real data.
+- **`index.ts`** is the barrel: `export type` for the types (required by
+  `verbatimModuleSyntax`), then the data re-exports.
 
 ### Window manager (reducer + Context)
 
@@ -320,11 +352,12 @@ and the start menu via `useStartMenu`:
 
 ### Domain model
 
-Domain types live in `src/common/types.ts` (`Brand`, `Position`, `Size`, `IconName`)
-and `src/features/desktop/types.ts` (`AppId`, `WindowId`, `AppDescriptor`,
-`WindowInstance`, `DesktopState`). IDs are branded (`Brand<string, 'WindowId'>`) so
-`WindowId` and `AppId` are not interchangeable — they're cast to the branded type only
-at the boundary (`crypto.randomUUID() as WindowId`).
+Domain types live in `src/common/types.ts` (`Brand`, `Position`, `Size`, `IconName`),
+`src/features/desktop/types.ts` (`AppId`, `WindowId`, `AppDescriptor`,
+`WindowInstance`, `DesktopState`), and `src/data/types.ts` (the personal-site content
+domain — see [Content data model](#content-data-model) above). IDs are branded
+(`Brand<string, 'WindowId'>`) so `WindowId` and `AppId` are not interchangeable — they're
+cast to the branded type only at the boundary (`crypto.randomUUID() as WindowId`).
 
 ### Styling
 
@@ -402,6 +435,10 @@ at the boundary (`crypto.randomUUID() as WindowId`).
 - **Pure helper tests** (`utils/resolveTaskbarAction.test.ts`) assert the helper's
   output per (window state, focused id) combination and, via `expect-type`, that its
   return type is exactly `WindowAction`.
+- **Data model type tests** (`data/types.test.ts`) are pure type-level tests using
+  `expectTypeOf` to assert each content type's shape (and that `Url` / `MonthYear` are
+  branded, `ExperienceEntry` extends `TimelineEntry`, `EducationEntry` equals
+  `TimelineEntry`). No runtime logic.
 - **Reducer unit tests** exercise the pure reducer directly (no React render). The
   `windowsReducer` tests use the shared factory helpers and mock `crypto.randomUUID`
   for deterministic IDs; the `bootReducer` tests drive `initialBootState` /
