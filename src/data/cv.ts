@@ -24,7 +24,7 @@ export const cv: Cv = {
       organization: 'Your University',
       period: {
         startDate: 'Jan 2016' as Cv['education'][number]['period']['startDate'],
-        endDate: 'Jan 2020' as Cv['education'][number]['period']['startDate'],
+        endDate: 'Jan 2020' as Cv['education'][number]['period']['endDate'],
       },
     },
   ],
