@@ -1,42 +1,100 @@
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { describe, it, expect } from 'vitest';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '@/App.tsx';
+import {
+  BOOT_MIN_DURATION_MS,
+  usePrefersReducedMotion,
+} from '@/features/boot/index.ts';
+
+vi.mock('@/features/boot/index.ts', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@/features/boot/index.ts')>();
+  return {
+    ...actual,
+    usePrefersReducedMotion: vi.fn(),
+  };
+});
+
+const mockedUsePrefersReducedMotion = vi.mocked(usePrefersReducedMotion);
 
 describe('App', () => {
-  it('renders without crashing', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    sessionStorage.clear();
+    window.history.replaceState({}, '', '/');
+    mockedUsePrefersReducedMotion.mockReturnValue(false);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.clearAllMocks();
+  });
+
+  it('renders the boot screen on first load', () => {
     render(<App />);
+
     expect(
-      screen.getByRole('button', { name: /count is/i }),
+      screen.getByRole('status', { name: 'BernasOS loading' }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('status', { name: 'BernasOS idle screen' }),
+    ).not.toBeInTheDocument();
   });
 
-  it('increments the count when the Count button is clicked', async () => {
-    const user = userEvent.setup();
+  it('does not render the Vite counter', () => {
     render(<App />);
 
-    const button = screen.getByRole('button', { name: /count is/i });
-    expect(button).toHaveTextContent('Count is 0');
-
-    await user.click(button);
-    expect(button).toHaveTextContent('Count is 1');
-
-    await user.click(button);
-    expect(button).toHaveTextContent('Count is 2');
+    expect(
+      screen.queryByRole('button', { name: /count is/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /reset/i }),
+    ).not.toBeInTheDocument();
   });
 
-  it('resets count to zero when Reset is clicked', async () => {
-    const user = userEvent.setup();
+  it('auto-dismisses to the idle screen after BOOT_MIN_DURATION_MS', () => {
     render(<App />);
 
-    const button = screen.getByRole('button', { name: /count is/i });
-    const resetButton = screen.getByRole('button', { name: /reset/i });
+    act(() => {
+      vi.advanceTimersByTime(BOOT_MIN_DURATION_MS - 1);
+    });
+    expect(
+      screen.getByRole('status', { name: 'BernasOS loading' }),
+    ).toBeInTheDocument();
 
-    await user.click(button);
-    await user.click(button);
-    expect(button).toHaveTextContent('Count is 2');
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(
+      screen.getByRole('status', { name: 'BernasOS idle screen' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('status', { name: 'BernasOS loading' }),
+    ).not.toBeInTheDocument();
+  });
 
-    await user.click(resetButton);
-    expect(button).toHaveTextContent('Count is 0');
+  it('skips to the idle screen when the boot screen is clicked', () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('status', { name: 'BernasOS loading' }));
+
+    expect(
+      screen.getByRole('status', { name: 'BernasOS idle screen' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('status', { name: 'BernasOS loading' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('dismisses immediately when the user prefers reduced motion', () => {
+    mockedUsePrefersReducedMotion.mockReturnValue(true);
+    render(<App />);
+
+    expect(
+      screen.getByRole('status', { name: 'BernasOS idle screen' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('status', { name: 'BernasOS loading' }),
+    ).not.toBeInTheDocument();
   });
 });

@@ -10,6 +10,14 @@ Live site: https://bernas1104.github.io
 site / portfolio. Instead of a traditional scrolling page, content lives inside
 draggable, resizable windows managed by a custom window manager.
 
+The app opens with a **Windows 98-style boot / splash screen** — a full-viewport
+sky-gradient splash with clouds, a wordmark, and a spinner — that auto-dismisses
+after a short delay (or on click / Enter / Space) and hands off to the shell. It
+plays once per browser session in production (always in development), respects
+`prefers-reduced-motion`, and can be skipped via a `?skipBoot` URL param. The
+shell currently renders an "under construction" placeholder; it is intended to be
+replaced by the Desktop.
+
 The window manager is a Redux-like state layer built on `useReducer` + Context
 (no Redux dependency). It supports:
 
@@ -43,7 +51,7 @@ layered with Tailwind CSS v4 utilities driven by Win98 design tokens.
 
 ```text
 src/
-├── App.tsx                  # Root component
+├── App.tsx                  # Root component (boot → idle transition)
 ├── App.test.tsx
 ├── main.tsx                 # React entry point (mounts App inside WindowManagerProvider + StartMenuProvider)
 ├── index.css                # CSS entry: 98.css → tokens → global → tailwind
@@ -53,52 +61,74 @@ src/
 │   ├── types.ts             # Brand, Position, Size, IconName
 │   └── types.test.ts        # Type-level tests (expect-type)
 ├── features/
-│   └── desktop/
-│       ├── types.ts               # AppId, WindowId, AppDescriptor, WindowInstance, DesktopState
-│       ├── types.test.ts
-│       ├── StartMenuContext.tsx   # Start menu { isStartMenuOpen, close, toggle } context
-│       ├── StartMenuProvider.tsx  # useState-backed provider for the start menu
-│       ├── testUtils.ts            # Shared test factories (makeApp, makeWindow, makeAppId, makeWindowId)
-│       ├── components/             # Desktop chrome UI
-│       │   ├── Desktop.tsx              # Desktop background; hosts icons + windows + taskbar + start menu
-│       │   ├── Desktop.test.tsx
-│       │   ├── DesktopIcon.tsx          # Selectable app icon (click / double-click / Enter)
-│       │   ├── DesktopIcon.test.tsx
-│       │   ├── Window.tsx              # Chrome: position/size/zIndex, focus, resize handle
-│       │   ├── Window.test.tsx
-│       │   ├── TitleBar.tsx            # Title + Minimize/Maximize/Restore/Close; drives drag
-│       │   ├── TitleBar.test.tsx
-│       │   ├── Taskbar.tsx             # Bottom bar: Start button, window buttons, clock
-│       │   ├── Taskbar.test.tsx
-│       │   ├── StartMenu.tsx           # Start popup; closes on outside click / Escape
-│       │   ├── StartMenu.test.tsx
-│       │   ├── Clock.tsx               # Live 24h HH:MM clock (60s interval)
-│       │   └── Clock.test.tsx
-│       ├── hooks/           # Pointer / interaction hooks
-│       │   ├── index.ts                 # Barrel: useDrag, useResize
-│       │   ├── useDrag.ts               # Pointer-capture drag (cumulative deltas)
-│       │   ├── useDrag.test.ts
-│       │   ├── useResize.ts             # Resize via useDrag (delta → new Size)
-│       │   ├── useResize.test.ts
-│       │   ├── useOutsideClick.ts       # Calls back on pointerdown outside a ref
-│       │   ├── useOutsideClick.test.ts
-│       │   ├── useStartMenu.ts          # Start menu context consumer hook
-│       │   └── useStartMenu.test.tsx
-│       ├── utils/          # Pure helpers
-│       │   ├── index.ts                 # Barrel: resolveTaskbarAction
-│       │   ├── resolveTaskbarAction.ts  # (window, focusedId) → WindowAction
-│       │   └── resolveTaskbarAction.test.ts
-│       └── windowManager/   # Reducer + Context state layer
-│           ├── index.ts                 # Barrel: public API
-│           ├── actions.ts               # WindowAction union + action creators
-│           ├── actions.test.ts          # Action creator + type-level union tests
-│           ├── reducer.ts               # windowsReducer + initialWindowsState + min-size constants
-│           ├── reducer.test.ts          # Pure reducer unit tests
-│           ├── WindowManagerContext.ts  # { state, dispatch } context
-│           ├── WindowManagerProvider.tsx
-│           └── useWindowManager.ts      # Consumer hook
+│   ├── boot/                # Boot / splash screen sequence
+│   │   ├── types.ts                # BootStatus, BootState, BootEnvironment, BootSequenceConfig
+│   │   ├── types.test.ts           # Type-level tests
+│   │   ├── actions.ts              # BootAction union (SKIP | TIMEOUT) + creators
+│   │   ├── actions.test.ts         # Action creator + type-level union tests
+│   │   ├── reducer.ts              # bootReducer + initialBootState + createInitialBootState
+│   │   ├── reducer.test.ts         # Pure reducer unit tests
+│   │   ├── config.ts               # BOOT_MIN_DURATION_MS (2500ms), BOOT_PLAYED_SESSION_KEY
+│   │   ├── config.test.ts
+│   │   ├── useBootSequence.ts      # useReducer hook: { status, skip } + shouldPlayBootSequence
+│   │   ├── useBootSequence.test.ts
+│   │   ├── usePrefersReducedMotion.ts  # matchMedia hook for prefers-reduced-motion
+│   │   ├── usePrefersReducedMotion.test.ts
+│   │   ├── BootScreen.tsx          # Full-viewport splash (clouds + wordmark + spinner)
+│   │   ├── BootScreen.test.tsx
+│   │   ├── boot.css                # Splash styles (consumes --win98-boot-* tokens)
+│   │   └── index.ts                # Barrel: public API
+│   ├── desktop/
+│   │   ├── types.ts               # AppId, WindowId, AppDescriptor, WindowInstance, DesktopState
+│   │   ├── types.test.ts
+│   │   ├── StartMenuContext.tsx   # Start menu { isStartMenuOpen, close, toggle } context
+│   │   ├── StartMenuProvider.tsx  # useState-backed provider for the start menu
+│   │   ├── testUtils.ts            # Shared test factories (makeApp, makeWindow, makeAppId, makeWindowId)
+│   │   ├── components/             # Desktop chrome UI
+│   │   │   ├── Desktop.tsx              # Desktop background; hosts icons + windows + taskbar + start menu
+│   │   │   ├── Desktop.test.tsx
+│   │   │   ├── DesktopIcon.tsx          # Selectable app icon (click / double-click / Enter)
+│   │   │   ├── DesktopIcon.test.tsx
+│   │   │   ├── Window.tsx              # Chrome: position/size/zIndex, focus, resize handle
+│   │   │   ├── Window.test.tsx
+│   │   │   ├── TitleBar.tsx            # Title + Minimize/Maximize/Restore/Close; drives drag
+│   │   │   ├── TitleBar.test.tsx
+│   │   │   ├── Taskbar.tsx             # Bottom bar: Start button, window buttons, clock
+│   │   │   ├── Taskbar.test.tsx
+│   │   │   ├── StartMenu.tsx           # Start popup; closes on outside click / Escape
+│   │   │   ├── StartMenu.test.tsx
+│   │   │   ├── Clock.tsx               # Live 24h HH:MM clock (60s interval)
+│   │   │   └── Clock.test.tsx
+│   │   ├── hooks/           # Pointer / interaction hooks
+│   │   │   ├── index.ts                 # Barrel: useDrag, useResize
+│   │   │   ├── useDrag.ts               # Pointer-capture drag (cumulative deltas)
+│   │   │   ├── useDrag.test.ts
+│   │   │   ├── useResize.ts             # Resize via useDrag (delta → new Size)
+│   │   │   ├── useResize.test.ts
+│   │   │   ├── useOutsideClick.ts       # Calls back on pointerdown outside a ref
+│   │   │   ├── useOutsideClick.test.ts
+│   │   │   ├── useStartMenu.ts          # Start menu context consumer hook
+│   │   │   └── useStartMenu.test.tsx
+│   │   ├── utils/          # Pure helpers
+│   │   │   ├── index.ts                 # Barrel: resolveTaskbarAction
+│   │   │   ├── resolveTaskbarAction.ts  # (window, focusedId) → WindowAction
+│   │   │   └── resolveTaskbarAction.test.ts
+│   │   └── windowManager/   # Reducer + Context state layer
+│   │       ├── index.ts                 # Barrel: public API
+│   │       ├── actions.ts               # WindowAction union + action creators
+│   │       ├── actions.test.ts          # Action creator + type-level union tests
+│   │       ├── reducer.ts               # windowsReducer + initialWindowsState + min-size constants
+│   │       ├── reducer.test.ts          # Pure reducer unit tests
+│   │       ├── WindowManagerContext.ts  # { state, dispatch } context
+│   │       ├── WindowManagerProvider.tsx
+│   │       └── useWindowManager.ts      # Consumer hook
+│   └── shell/               # Idle placeholder (replaced by Desktop later)
+│       ├── IdleScreen.tsx        # Full-viewport "under construction" status
+│       ├── IdleScreen.test.tsx
+│       ├── idleScreen.css        # Idle screen styles
+│       └── index.ts             # Barrel: IdleScreen
 ├── styles/
-│   ├── tokens.css           # Win98 design tokens (palette, type, spacing, z-index)
+│   ├── tokens.css           # Win98 design tokens (palette, type, spacing, z-index, boot)
 │   └── global.css           # Desktop chrome: overflow lock, resize handle, icon selection, taskbar, start menu, clock
 └── test/
     └── setup.ts             # Vitest setup (jest-dom matchers)
@@ -146,8 +176,10 @@ Code is organized into feature modules under `src/features/<feature>/`. Each fea
 owns its domain model in `types.ts` (with colocated type-level tests in `types.test.ts`)
 and grows components/hooks/utils as needed. Features can nest sub-modules —
 `src/features/desktop/` owns the desktop domain and contains the `windowManager/`
-(state) and `utils/` (pure helpers) sub-modules. Every module exposes its public API
-through a barrel `index.ts`; import from the barrel rather than internal files:
+(state) and `utils/` (pure helpers) sub-modules. `src/features/boot/` (splash sequence)
+and `src/features/shell/` (idle placeholder) are top-level features. Every module
+exposes its public API through a barrel `index.ts`; import from the barrel rather than
+internal files:
 
 ```ts
 import { useWindowManager, openApp } from '@/features/desktop/windowManager/index.ts';
@@ -187,6 +219,51 @@ reducer):
   onStartMenuToggle }`. The provider is mounted in `src/main.tsx` inside the
   `WindowManagerProvider`.
 - **`useStartMenu.ts`** consumes the context and throws if used outside the provider.
+
+### Boot sequence
+
+The boot sequence (`src/features/boot/`) drives the splash → idle transition at the
+top of the app. Unlike the window manager it uses a **hook-local `useReducer`** —
+there is no Context provider, the state stays inside the hook:
+
+- **`types.ts`** defines `BootStatus` (`'booting' | 'dismissed'`), `BootState`,
+  `BootEnvironment` (`{ isDevelopment, isTest }`), and `BootSequenceConfig`.
+- **`actions.ts`** defines a `BootAction` union (`SKIP` | `TIMEOUT`, both payload-less)
+  and the `skipBoot` / `timeoutBoot` creators.
+- **`reducer.ts`** holds a pure `bootReducer`, `initialBootState`, and
+  `createInitialBootState(shouldPlay)`. Both actions transition `booting`→`dismissed`
+  and no-op (return the same state reference) when already dismissed. Exhaustiveness
+  is enforced via `action satisfies never` in the `default` branch.
+- **`config.ts`** exports `BOOT_MIN_DURATION_MS` (2500ms) and
+  `BOOT_PLAYED_SESSION_KEY` (`'bernasos:bootPlayed'`).
+- **`useBootSequence.ts`** is the `useReducer`-backed hook returning
+  `{ status, skip }`. The pure helper
+  `shouldPlayBootSequence(environment, sessionHasPlayed, skipRequested)` decides
+  whether to play: dev/test always play; production plays once per session unless the
+  `?skipBoot` URL param is present. The hook schedules a `TIMEOUT` dismissal after
+  `minDurationMs`, clears the timer on unmount, and persists the played flag to
+  `sessionStorage` only in production.
+- **`usePrefersReducedMotion.ts`** subscribes to `(prefers-reduced-motion: reduce)`
+  via `matchMedia`, returns a boolean, and cleans up the listener on unmount.
+- **`BootScreen.tsx`** + **`boot.css`** render the full-viewport splash (sky-gradient
+  + clouds + wordmark + spinner) with `role="status"` (`aria-label="BernasOS
+  loading"`). It skips on click / Enter / Space and dismisses immediately when
+  `prefersReducedMotion` is set. `boot.css` consumes the `--win98-boot-*` tokens and
+  disables the spinner animation under reduced motion.
+
+### Shell (idle placeholder)
+
+The shell (`src/features/shell/`) is a placeholder for the post-boot UI:
+
+- **`IdleScreen.tsx`** + **`idleScreen.css`** render a full-viewport "under
+  construction" status (`role="status"`, `aria-label="BernasOS idle screen"`). It is
+  shown after the boot sequence dismisses and is intended to be replaced by the
+  Desktop.
+
+`src/App.tsx` ties the two together: it renders `<BootScreen>` while `useBootSequence`
+reports `booting`, then `<IdleScreen>` once `dismissed`. (`src/main.tsx` still mounts
+the `WindowManagerProvider` + `StartMenuProvider` around `<App />`; the idle
+placeholder doesn't consume them yet.)
 
 ### Pure helpers
 
@@ -254,18 +331,26 @@ at the boundary (`crypto.randomUUID() as WindowId`).
 - **98.css** provides the Windows 98 widget chrome (`.window`, `.title-bar`,
   `.window-body`, buttons, etc.).
 - **`src/styles/tokens.css`** centralizes the Win98 palette, typography (font stack
-  begins with `'Pixelated MS Sans Serif'`), spacing scale, and a z-index scale
-  (`--win98-z-index-start-menu`) as `--win98-*` CSS custom properties. Components
-  reference tokens, never raw hex colors.
+  begins with `'Pixelated MS Sans Serif'`), spacing scale, a z-index scale
+  (`--win98-z-index-start-menu`), and a boot/splash palette
+  (`--win98-boot-sky-top`, `--win98-boot-sky-bottom`, `--win98-boot-cloud`) as
+  `--win98-*` CSS custom properties. Components reference tokens, never raw hex
+  colors.
 - **`src/styles/global.css`** adds desktop chrome: body overflow lock, `.desktop`
   background layer, `.window-resize-handle`, the desktop-icon selection styles
   (`.desktop-icon-container`, `.icon-selected`, `.icon-text-selected`), the taskbar /
   start-menu / clock chrome (`.taskbar`, `.start-menu`, `.clock`, …), and a global
   `font-family: var(--win98-font)`. Desktop icon labels use the `--win98-desktop-text`
   token.
+- **Feature-scoped CSS:** some features colocate a stylesheet next to the component
+  and import it directly (e.g. `src/features/boot/boot.css`,
+  `src/features/shell/idleScreen.css`). These consume `--win98-*` tokens via `var()`
+  and are intentionally not mapped into Tailwind's `@theme` — keep them feature-local.
 - **`src/index.css`** maps those tokens into Tailwind v4 via a `@theme` block, so
   utilities like `bg-desktop`, `text-window-text`, and `font-win98` work. Import order
-  matters: `98.css` → `tokens.css` → `global.css` → `tailwindcss`.
+  matters: `98.css` → `tokens.css` → `global.css` → `tailwindcss`. Not every token
+  maps to a utility — `--win98-desktop-text`, `--win98-z-index-start-menu`, and the
+  `--win98-boot-*` palette are consumed directly via `var()`.
 
 ## Testing
 
@@ -281,7 +366,11 @@ at the boundary (`crypto.randomUUID() as WindowId`).
   tests additionally wrap in a `StartMenuContext.Provider`. `Clock` tests are
   separate: they render `Clock` directly (it consumes no context), using fake
   timers to drive the minute-boundary update and the 60-second refresh and to
-  assert timer cleanup on unmount.
+  assert timer cleanup on unmount. `BootScreen` and `IdleScreen` also render
+  directly (no context): `BootScreen` tests assert the accessible status region,
+  click/Enter/Space skip handlers, window-listener attach/remove on
+  mount/unmount, and immediate dismiss when `prefersReducedMotion` is set;
+  `IdleScreen` tests assert the status region and placeholder chrome.
 - **Pointer-interaction hook tests** (`useDrag`, `useResize`, `useOutsideClick`) use
   `renderHook` with a manually created DOM element ref and synthetic `PointerEvent`s
   to cover cumulative deltas, pointer capture, drag-state callbacks, unmount cleanup,
@@ -290,16 +379,34 @@ at the boundary (`crypto.randomUUID() as WindowId`).
 - **Context hook tests** (`useStartMenu`) use `renderHook` through a
   `StartMenuContext.Provider`, asserting the returned handlers (including updated
   context values on re-render) and that the hook throws outside a `StartMenuProvider`.
+- **Boot hook tests** (`useBootSequence.test.ts`, `usePrefersReducedMotion.test.ts`)
+  use `renderHook`. `useBootSequence` tests cover the pure
+  `shouldPlayBootSequence(environment, sessionHasPlayed, skipRequested)` helper
+  (dev/test always play; production plays once per session unless the `?skipBoot`
+  URL param is present) and the hook itself with fake timers, `sessionStorage`, and
+  `window.history` — asserting the `booting`→`dismissed` timeout, timeout cleanup on
+  unmount, and that the played flag is persisted to `sessionStorage` only in
+  production. `usePrefersReducedMotion` tests stub `window.matchMedia`, asserting
+  the initial matches value, change-event updates, and listener
+  subscribe/unsubscribe.
+- **App tests** (`App.test.tsx`) use fake timers and mock `usePrefersReducedMotion`
+  to assert the boot→idle transition: the boot screen renders first, auto-dismisses
+  after `BOOT_MIN_DURATION_MS`, dismisses on click, and dismisses immediately when
+  reduced motion is preferred. `sessionStorage` and `window.history` are reset
+  between tests.
 - **Type-level tests** use `expect-type` for compile-time assertions (no runtime logic).
-- **Action creator tests** (`actions.test.ts`) assert each creator's output and, via
-  `expect-type`, that every creator returns a `WindowAction` and that the union is
+- **Action creator tests** (`windowManager/actions.test.ts`, `boot/actions.test.ts`)
+  assert each creator's output and, via `expect-type`, that every creator returns a
+  member of its action union (`WindowAction` / `BootAction`) and that the union is
   discriminated by the expected type literals.
 - **Pure helper tests** (`utils/resolveTaskbarAction.test.ts`) assert the helper's
   output per (window state, focused id) combination and, via `expect-type`, that its
   return type is exactly `WindowAction`.
-- **Reducer unit tests** exercise the pure reducer directly (no React render), using
-  the shared factory helpers and mocking `crypto.randomUUID` for deterministic IDs.
-  No-op cases are asserted with referential equality (`expect(next).toBe(state)`).
+- **Reducer unit tests** exercise the pure reducer directly (no React render). The
+  `windowsReducer` tests use the shared factory helpers and mock `crypto.randomUUID`
+  for deterministic IDs; the `bootReducer` tests drive `initialBootState` /
+  `createInitialBootState` directly. No-op cases are asserted with referential
+  equality (`expect(next).toBe(state)`).
 
 Run a single file:
 

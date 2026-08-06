@@ -42,4 +42,9 @@
   /* --- Z-index scale --- */
   --win98-z-index-taskbar: 9999;
   --win98-z-index-start-menu: 10000;
+
+  /* --- Boot / Splash --- */
+  --win98-boot-sky-top: #87ceeb;
+  --win98-boot-sky-bottom: #b0e0e6;
+  --win98-boot-cloud: #ffffff;
 }
