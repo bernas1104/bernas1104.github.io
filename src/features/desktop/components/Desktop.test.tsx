@@ -1,6 +1,7 @@
 import { fireEvent, render } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Desktop } from '@/features/desktop/components/Desktop.tsx';
+import type { WindowProps } from '@/features/desktop/components/Window.tsx';
 import { WindowManagerContext } from '@/features/desktop/windowManager/index.ts';
 import type { WindowAction } from '@/features/desktop/windowManager/index.ts';
 import type {
@@ -10,6 +11,22 @@ import type {
 } from '@/features/desktop/types.ts';
 import { makeWindow, makeWindowId } from '@/features/desktop/testUtils.ts';
 import { StartMenuContext } from '@/features/desktop/StartMenuContext.tsx';
+
+vi.mock('@/features/desktop/components/Window.tsx', () => ({
+  Window: ({ window, focusedWindowId }: WindowProps) => {
+    if (window.state === 'minimized') return null;
+    return (
+      <div className="window" onClick={(e) => e.stopPropagation()}>
+        <div
+          className={`title-bar ${window.id === focusedWindowId ? '' : 'inactive'}`}
+        >
+          <div className="title-bar-text">{window.title}</div>
+        </div>
+        <div className="window-body" />
+      </div>
+    );
+  },
+}));
 
 const makeState = (overrides: Partial<DesktopState> = {}): DesktopState => ({
   windows: new Map<WindowId, WindowInstance>(),
@@ -49,7 +66,7 @@ describe('Desktop', () => {
 
   it('renders a desktop icon', () => {
     const { getByRole } = renderDesktop();
-    expect(getByRole('button', { name: 'BernasOS' })).toBeInTheDocument();
+    expect(getByRole('button', { name: 'My Computer' })).toBeInTheDocument();
   });
 
   it('renders no windows when the state is empty', () => {
@@ -201,14 +218,14 @@ describe('Desktop', () => {
 
   it('does not dispatch CLEAR_FOCUS when a desktop icon is clicked', () => {
     const { getByRole, dispatch } = renderDesktop();
-    fireEvent.click(getByRole('button', { name: 'BernasOS' }));
+    fireEvent.click(getByRole('button', { name: 'My Computer' }));
 
     expect(dispatch).not.toHaveBeenCalledWith({ type: 'CLEAR_FOCUS' });
   });
 
-  it('uses the app from the module to render the desktop icon', () => {
+  it('uses the app from the registry to render the desktop icon', () => {
     const { getByRole } = renderDesktop();
-    const icon = getByRole('button', { name: 'BernasOS' });
+    const icon = getByRole('button', { name: 'My Computer' });
     expect(icon).toBeInTheDocument();
     expect(icon.tagName).toBe('DIV');
   });

@@ -1,3 +1,5 @@
+import { lazy } from 'react';
+import { vi } from 'vitest';
 import type {
   AppDescriptor,
   AppId,
@@ -16,6 +18,7 @@ export const makeApp = (
   defaultSize: { width: 400, height: 300 },
   resizable: true,
   singleton: false,
+  component: lazy(() => Promise.resolve({ default: vi.fn() })),
   ...overrides,
 });
 

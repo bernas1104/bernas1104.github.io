@@ -4,10 +4,12 @@ import {
   initialWindowsState,
   windowsReducer,
 } from '@/features/desktop/windowManager/reducer.ts';
+import { useRouteSync } from '@/apps/useRouteSync.ts';
 
 export function WindowManagerProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(windowsReducer, initialWindowsState);
   const value = useMemo(() => ({ state, dispatch }), [state, dispatch]);
+  useRouteSync(state, dispatch);
 
   return (
     <WindowManagerContext.Provider value={value}>

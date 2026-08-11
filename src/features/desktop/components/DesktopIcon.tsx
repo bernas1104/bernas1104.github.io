@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { AppDescriptor } from '@/features/desktop/types.ts';
 import { useWindowManager } from '@/features/desktop/windowManager/index.ts';
-import ComputerExplorerIcon from '@/assets/icons/computer_explorer-5.png';
+import { iconMap } from '@/common/icons.ts';
 
 export function DesktopIcon({ app }: { app: AppDescriptor }) {
   const { dispatch } = useWindowManager();
@@ -36,10 +36,10 @@ export function DesktopIcon({ app }: { app: AppDescriptor }) {
       <div className="desktop-icon">
         {isSelected && <div className="icon-selected" />}
         <img
-          src={ComputerExplorerIcon}
-          alt={'My Computer Icon'}
-          width={48}
-          height={48}
+          src={iconMap[app.icon]}
+          alt={`${app.title} Icon`}
+          width={32}
+          height={32}
         />
       </div>
       <div

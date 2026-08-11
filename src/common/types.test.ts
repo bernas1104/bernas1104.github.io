@@ -45,15 +45,11 @@ describe('IconName', () => {
       | 'github'
       | 'linkedin'
       | 'email'
-      | 'download'
-      | 'close'
-      | 'maximize'
-      | 'minimize'
-      | 'restore'
       | 'folder'
-      | 'file'
       | 'trash'
       | 'settings'
+      | 'computer'
+      | 'shutdown'
     >();
   });
 });

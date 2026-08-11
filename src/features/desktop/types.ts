@@ -1,3 +1,4 @@
+import type { ComponentType, LazyExoticComponent } from 'react';
 import type { Brand, IconName, Position, Size } from '@/common/types.ts';
 
 export type AppId = Brand<string, 'AppId'>;
@@ -11,6 +12,7 @@ export type AppDescriptor = {
   readonly defaultSize: Size;
   readonly resizable: boolean;
   readonly singleton: boolean;
+  readonly component: LazyExoticComponent<ComponentType<Record<string, never>>>;
 };
 
 export type WindowState = 'open' | 'minimized' | 'maximized';

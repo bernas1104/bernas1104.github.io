@@ -13,12 +13,8 @@ export type IconName =
   | 'github'
   | 'linkedin'
   | 'email'
-  | 'download'
-  | 'close'
-  | 'maximize'
-  | 'minimize'
-  | 'restore'
   | 'folder'
-  | 'file'
   | 'trash'
-  | 'settings';
+  | 'settings'
+  | 'computer'
+  | 'shutdown';

@@ -5,25 +5,11 @@ import { WindowManagerContext } from '@/features/desktop/windowManager/index.ts'
 import type { WindowAction } from '@/features/desktop/windowManager/index.ts';
 import { StartMenuContext } from '@/features/desktop/StartMenuContext.tsx';
 import type {
-  AppDescriptor,
   DesktopState,
   WindowId,
   WindowInstance,
 } from '@/features/desktop/types.ts';
-import {
-  makeAppId,
-  makeWindow,
-  makeWindowId,
-} from '@/features/desktop/testUtils.ts';
-
-const bernasOsApp: AppDescriptor = {
-  id: makeAppId('1'),
-  title: 'BernasOS',
-  defaultSize: { width: 400, height: 300 },
-  singleton: true,
-  resizable: true,
-  icon: 'folder',
-};
+import { makeWindow, makeWindowId } from '@/features/desktop/testUtils.ts';
 
 const makeState = (overrides: Partial<DesktopState> = {}): DesktopState => ({
   windows: new Map<WindowId, WindowInstance>(),
@@ -88,11 +74,11 @@ describe('StartMenu', () => {
     expect((sidebarTitle as HTMLElement).textContent).toContain('OS');
   });
 
-  it('renders the My Computer menu item with an icon and label', () => {
+  it('renders the Shutdown menu item with an icon and label', () => {
     const { getByAltText, getByText, container } = renderStartMenu();
     expect(container.querySelector('.start-menu-item')).toBeInTheDocument();
-    expect(getByAltText('My Computer')).toBeInTheDocument();
-    expect(getByText('My Computer')).toBeInTheDocument();
+    expect(getByAltText('Shutdown')).toBeInTheDocument();
+    expect(getByText('Shutdown')).toBeInTheDocument();
   });
 
   it('closes the menu when the Escape key is pressed', () => {
@@ -119,14 +105,11 @@ describe('StartMenu', () => {
     expect(closeStartMenu).not.toHaveBeenCalled();
   });
 
-  it('dispatches OPEN_APP with the BernasOS app and closes when the menu item is clicked', () => {
+  it('closes the menu without dispatching a window action when the Shutdown item is clicked', () => {
     const { container, dispatch, closeStartMenu } = renderStartMenu();
     fireEvent.click(container.querySelector('.start-menu-item') as HTMLElement);
 
-    expect(dispatch).toHaveBeenCalledWith({
-      type: 'OPEN_APP',
-      app: bernasOsApp,
-    });
+    expect(dispatch).not.toHaveBeenCalled();
     expect(closeStartMenu).toHaveBeenCalledTimes(1);
   });
 
