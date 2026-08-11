@@ -12,11 +12,13 @@ draggable, resizable windows managed by a custom window manager.
 
 The app opens with a **Windows 98-style boot / splash screen** — a full-viewport
 sky-gradient splash with clouds, a wordmark, and a spinner — that auto-dismisses
-after a short delay (or on click / Enter / Space) and hands off to the shell. It
-plays once per browser session in production (always in development), respects
-`prefers-reduced-motion`, and can be skipped via a `?skipBoot` URL param. The
-shell currently renders an "under construction" placeholder; it is intended to be
-replaced by the Desktop.
+after a short delay (or on click / Enter / Space) and hands off to the **Desktop**.
+It plays once per browser session in production (always in development), respects
+`prefers-reduced-motion`, and can be skipped via a `?skipBoot` URL param.
+
+Apps (My Computer, About, CV, Projects, Contact, Terminal) are registered in an
+**app registry** with code-split (`React.lazy`) components, and the URL hash mirrors
+the focused app — so deep-linking to `/#/projects` opens the Projects window.
 
 The window manager is a Redux-like state layer built on `useReducer` + Context
 (no Redux dependency). It supports:
@@ -29,6 +31,7 @@ The window manager is a Redux-like state layer built on `useReducer` + Context
 - **Move / resize** windows (resize enforces a minimum size)
 - **Taskbar** with a Start button, one entry per window (click focuses, restores, or minimizes depending on state), and a live clock
 - **Start menu** that opens apps and closes on outside click or Escape
+- **App registry & deep-linking**: apps are declared in `appRegistry` with code-split components; the URL hash mirrors the focused app and a bidirectional route sync keeps the URL and window state in lockstep
 - Focus falls back to the next-highest visible window when the focused one is minimized
 
 The Win98 look comes from [98.css](https://jdan.github.io/98.css/) for widget chrome,
@@ -41,6 +44,7 @@ layered with Tailwind CSS v4 utilities driven by Win98 design tokens.
 | UI          | React 19                                                |
 | Language    | TypeScript ~6 (strict)                                  |
 | Build       | Vite 8                                                  |
+| Routing     | React Router 8 (hash router)                            |
 | Styling     | Tailwind CSS v4 (`@tailwindcss/vite`) + 98.css          |
 | Testing     | Vitest 4 + @testing-library/react + jsdom + expect-type |
 | Lint/format | ESLint 9 + Prettier 3                                   |
@@ -51,15 +55,17 @@ layered with Tailwind CSS v4 utilities driven by Win98 design tokens.
 
 ```text
 src/
-├── App.tsx                  # Root component (boot → idle transition)
+├── App.tsx                  # Root component (boot → desktop transition)
 ├── App.test.tsx
-├── main.tsx                 # React entry point (mounts App inside WindowManagerProvider + StartMenuProvider)
+├── AppShell.tsx             # Route component: WindowManagerProvider + StartMenuProvider around App
+├── main.tsx                 # React entry point (mounts RouterProvider with the hash router)
 ├── index.css                # CSS entry: 98.css → tokens → global → tailwind
 ├── assets/
-│   └── icons/               # Desktop icon artwork (computer_explorer-*.png, windows-4.png)
+│   └── icons/               # Desktop/app icon artwork (computer_explorer-*.png, ms_dos-*.png, github.png, …)
 ├── common/
 │   ├── types.ts             # Brand, Position, Size, IconName
-│   └── types.test.ts        # Type-level tests (expect-type)
+│   ├── types.test.ts        # Type-level tests (expect-type)
+│   └── icons.ts             # iconMap: IconName → imported icon asset
 ├── data/                    # Personal-site content data model + placeholder data
 │   ├── types.ts             # About, Cv, Project, Contact, Skill/SkillGroup, Timeline*, Link, SocialLink, Url, MonthYear
 │   ├── types.test.ts        # Type-level tests (expect-type)
@@ -68,6 +74,14 @@ src/
 │   ├── cv.ts                # Placeholder Cv content (about + contact + experience + education + skills)
 │   ├── projects.ts          # Placeholder Project[] content
 │   └── index.ts             # Barrel: export type for types, then data re-exports
+├── apps/                    # App registry, routing, and route ↔ state sync
+│   ├── PlaceholderApp.tsx       # Lazy placeholder rendered until real app content lands
+│   ├── registry.ts              # appRegistry: Record<AppId, AppDescriptor> (lazy components)
+│   ├── registry.test.ts         # Registry shape + per-app assertions (type-level + runtime)
+│   ├── routes.ts                # createHashRouter — single /:appId? route → AppShell
+│   ├── useRouteSync.ts          # Bidirectional route ↔ window-state sync hook
+│   ├── useRouteSync.test.tsx    # Route sync tests (MemoryRouter + vi.fn dispatch)
+│   └── index.ts                 # Barrel: appRegistry, AppRegistry
 ├── features/
 │   ├── boot/                # Boot / splash screen sequence
 │   │   ├── types.ts                # BootStatus, BootState, BootEnvironment, BootSequenceConfig
@@ -76,7 +90,7 @@ src/
 │   │   ├── actions.test.ts         # Action creator + type-level union tests
 │   │   ├── reducer.ts              # bootReducer + initialBootState + createInitialBootState
 │   │   ├── reducer.test.ts         # Pure reducer unit tests
-│   │   ├── config.ts               # BOOT_MIN_DURATION_MS (2500ms), BOOT_PLAYED_SESSION_KEY
+│   │   ├── config.ts               # BOOT_MIN_DURATION_MS, BOOT_PLAYED_SESSION_KEY, MIN_APP_LOADING_MS
 │   │   ├── config.test.ts
 │   │   ├── useBootSequence.ts      # useReducer hook: { status, skip } + shouldPlayBootSequence
 │   │   ├── useBootSequence.test.ts
@@ -93,17 +107,17 @@ src/
 │   │   ├── StartMenuProvider.tsx  # useState-backed provider for the start menu
 │   │   ├── testUtils.ts            # Shared test factories (makeApp, makeWindow, makeAppId, makeWindowId)
 │   │   ├── components/             # Desktop chrome UI
-│   │   │   ├── Desktop.tsx              # Desktop background; hosts icons + windows + taskbar + start menu
+│   │   │   ├── Desktop.tsx              # Desktop background; hosts registry-driven icons + windows + taskbar + start menu
 │   │   │   ├── Desktop.test.tsx
 │   │   │   ├── DesktopIcon.tsx          # Selectable app icon (click / double-click / Enter)
 │   │   │   ├── DesktopIcon.test.tsx
-│   │   │   ├── Window.tsx              # Chrome: position/size/zIndex, focus, resize handle
+│   │   │   ├── Window.tsx              # Chrome: position/size/zIndex, focus, resize; Suspense + lazy app body
 │   │   │   ├── Window.test.tsx
 │   │   │   ├── TitleBar.tsx            # Title + Minimize/Maximize/Restore/Close; drives drag
 │   │   │   ├── TitleBar.test.tsx
 │   │   │   ├── Taskbar.tsx             # Bottom bar: Start button, window buttons, clock
 │   │   │   ├── Taskbar.test.tsx
-│   │   │   ├── StartMenu.tsx           # Start popup; closes on outside click / Escape
+│   │   │   ├── StartMenu.tsx           # Start popup; Shutdown item; closes on outside click / Escape
 │   │   │   ├── StartMenu.test.tsx
 │   │   │   ├── Clock.tsx               # Live 24h HH:MM clock (60s interval)
 │   │   │   └── Clock.test.tsx
@@ -130,7 +144,7 @@ src/
 │   │       ├── WindowManagerContext.ts  # { state, dispatch } context
 │   │       ├── WindowManagerProvider.tsx
 │   │       └── useWindowManager.ts      # Consumer hook
-│   └── shell/               # Idle placeholder (replaced by Desktop later)
+│   └── shell/               # Idle placeholder (unused — superseded by Desktop)
 │       ├── IdleScreen.tsx        # Full-viewport "under construction" status
 │       ├── IdleScreen.test.tsx
 │       ├── idleScreen.css        # Idle screen styles
@@ -185,9 +199,11 @@ owns its domain model in `types.ts` (with colocated type-level tests in `types.t
 and grows components/hooks/utils as needed. Features can nest sub-modules —
 `src/features/desktop/` owns the desktop domain and contains the `windowManager/`
 (state) and `utils/` (pure helpers) sub-modules. `src/features/boot/` (splash sequence)
-and `src/features/shell/` (idle placeholder) are top-level features. Every module
-exposes its public API through a barrel `index.ts`; import from the barrel rather than
-internal files:
+and `src/features/shell/` (idle placeholder, currently unused) are top-level features.
+`src/apps/`, `src/common/`, and `src/data/` sit alongside `src/features/` as top-level
+modules (app registry/routing, shared primitives, and content data respectively).
+Every module exposes its public API through a barrel `index.ts`; import from the
+barrel rather than internal files:
 
 ```ts
 import { useWindowManager, openApp } from '@/features/desktop/windowManager/index.ts';
@@ -237,9 +253,38 @@ The window manager follows a Redux-like pattern without Redux:
   `focusedWindowId` back to `null` and returns the same state reference when nothing
   is focused.
 - **`WindowManagerProvider.tsx`** wires `useReducer(windowsReducer, initialWindowsState)`
-  into a Context, exposing `{ state, dispatch }`. It is mounted in `src/main.tsx`,
-  wrapping `<App />` together with a nested `StartMenuProvider`.
+  into a Context, exposing `{ state, dispatch }`, and runs `useRouteSync(state, dispatch)`
+  to keep the URL hash in sync with window state. It is mounted in `src/AppShell.tsx`
+  (the router's route component), wrapping `<App />` together with a nested
+  `StartMenuProvider`.
 - **`useWindowManager.ts`** consumes the context and throws if used outside the provider.
+
+### App registry & routing
+
+`src/apps/` is a top-level module (alongside `src/features/`) that wires apps into the
+desktop and the URL:
+
+- **`registry.ts`** / **`index.ts`** define `appRegistry: Record<AppId, AppDescriptor>`
+  — the catalog of apps (`computer`, `about`, `contact`, `cv`, `projects`, `terminal`).
+  Each entry carries its `IconName`, `defaultSize`, `resizable` / `singleton` flags, and
+  a `component: React.lazy(...)` for code-splitting (the lazy component is what `Window`
+  renders inside its body). `About`, `CV`, `Projects`, `Contact`, and `Computer` are
+  singletons (reusing an existing window); `Terminal` allows multiple instances.
+  `PlaceholderApp.tsx` is the lazy placeholder rendered until real app content lands.
+- **`routes.ts`** builds a `createHashRouter` with a single `/:appId?` route whose
+  component is `AppShell` — so the URL hash mirrors the focused app (`/#/projects`,
+  `/#/`, …).
+- **`useRouteSync.ts`** is the bidirectional route ↔ window-state sync hook, called from
+  `WindowManagerProvider`. Route → state: a missing `appId` dispatches `CLEAR_FOCUS`;
+  a known `appId` with no open window dispatches `OPEN_APP`; an open-but-unfocused
+  window dispatches `FOCUS_WINDOW`; a minimized matching window dispatches `OPEN_APP`
+  to restore it; an unknown `appId` is ignored. State → route: it navigates to
+  `/<focusedAppId>` (or `/` when nothing is focused / the last window closed), using
+  `replace` for focus changes and `push` for newly opened apps.
+- **`src/AppShell.tsx`** (at `src/`, not `src/apps/`) mounts `WindowManagerProvider` +
+  `StartMenuProvider` around `App`; it is the route component so the router context is
+  available when `useRouteSync` runs. `src/main.tsx` mounts a `RouterProvider` with
+  this router.
 
 ### Start menu state
 
@@ -248,15 +293,16 @@ reducer):
 
 - **`StartMenuContext.tsx`** / **`StartMenuProvider.tsx`** hold a single `useState`
   boolean (`isStartMenuOpen`) and expose `{ isStartMenuOpen, closeStartMenu,
-  onStartMenuToggle }`. The provider is mounted in `src/main.tsx` inside the
+  onStartMenuToggle }`. The provider is mounted in `src/AppShell.tsx` inside the
   `WindowManagerProvider`.
 - **`useStartMenu.ts`** consumes the context and throws if used outside the provider.
 
 ### Boot sequence
 
-The boot sequence (`src/features/boot/`) drives the splash → idle transition at the
-top of the app. Unlike the window manager it uses a **hook-local `useReducer`** —
-there is no Context provider, the state stays inside the hook:
+The boot sequence (`src/features/boot/`) drives the splash → desktop handoff at the
+top of the app (it manages the `booting` → `dismissed` status; `App` renders
+`<Desktop>` once dismissed). Unlike the window manager it uses a **hook-local
+`useReducer`** — there is no Context provider, the state stays inside the hook:
 
 - **`types.ts`** defines `BootStatus` (`'booting' | 'dismissed'`), `BootState`,
   `BootEnvironment` (`{ isDevelopment, isTest }`), and `BootSequenceConfig`.
@@ -266,8 +312,10 @@ there is no Context provider, the state stays inside the hook:
   `createInitialBootState(shouldPlay)`. Both actions transition `booting`→`dismissed`
   and no-op (return the same state reference) when already dismissed. Exhaustiveness
   is enforced via `action satisfies never` in the `default` branch.
-- **`config.ts`** exports `BOOT_MIN_DURATION_MS` (2500ms) and
-  `BOOT_PLAYED_SESSION_KEY` (`'bernasos:bootPlayed'`).
+- **`config.ts`** exports `BOOT_MIN_DURATION_MS` (2500ms),
+  `BOOT_PLAYED_SESSION_KEY` (`'bernasos:bootPlayed'`), and `MIN_APP_LOADING_MS`
+  (600ms — the minimum loading delay `Window` enforces before revealing an app's
+  lazy-loaded component, via a `.window-loading` overlay).
 - **`useBootSequence.ts`** is the `useReducer`-backed hook returning
   `{ status, skip }`. The pure helper
   `shouldPlayBootSequence(environment, sessionHasPlayed, skipRequested)` decides
@@ -285,17 +333,18 @@ there is no Context provider, the state stays inside the hook:
 
 ### Shell (idle placeholder)
 
-The shell (`src/features/shell/`) is a placeholder for the post-boot UI:
+The shell (`src/features/shell/`) is a placeholder for the post-boot UI, currently
+**unused**:
 
 - **`IdleScreen.tsx`** + **`idleScreen.css`** render a full-viewport "under
-  construction" status (`role="status"`, `aria-label="BernasOS idle screen"`). It is
-  shown after the boot sequence dismisses and is intended to be replaced by the
-  Desktop.
+  construction" status (`role="status"`, `aria-label="BernasOS idle screen"`). It was
+  shown after the boot sequence dismissed and has been superseded by the Desktop; the
+  import in `App.tsx` is commented out, but the feature is retained for reference.
 
-`src/App.tsx` ties the two together: it renders `<BootScreen>` while `useBootSequence`
-reports `booting`, then `<IdleScreen>` once `dismissed`. (`src/main.tsx` still mounts
-the `WindowManagerProvider` + `StartMenuProvider` around `<App />`; the idle
-placeholder doesn't consume them yet.)
+`src/App.tsx` ties the boot sequence to the desktop: it renders `<BootScreen>` while
+`useBootSequence` reports `booting`, then `<Desktop>` once `dismissed`. The providers
+(`WindowManagerProvider` + `StartMenuProvider`) and the hash router live in
+`src/AppShell.tsx` / `src/apps/routes.ts` (see [App registry & routing](#app-registry--routing)).
 
 ### Pure helpers
 
@@ -316,26 +365,35 @@ and the start menu via `useStartMenu`:
   `zIndex` from `WindowInstance` (maximized fills the viewport). It dispatches
   `FOCUS_WINDOW` on pointer down, stops click propagation so desktop clicks don't
   clear focus, renders a `.window-resize-handle` for resizable non-maximized apps,
-  and disables geometry CSS transitions while a drag/resize is in progress.
+  and disables geometry CSS transitions while a drag/resize is in progress. The body
+  wraps the descriptor's `React.lazy` component (`<props.app.component />`) in
+  `<Suspense>` and enforces a `MIN_APP_LOADING_MS` minimum delay before revealing it,
+  showing a `.window-loading` wait-cursor overlay in the meantime (and as the Suspense
+  fallback).
 - **`TitleBar.tsx`** renders the title and Minimize / Maximize / Restore / Close
   controls (dispatching the matching actions) and drives window dragging via `useDrag`.
   It adds the `inactive` class when unfocused and stops propagation on controls so
   clicking a button doesn't start a drag.
-- **`Desktop.tsx`** renders the desktop background and hosts the `DesktopIcon`,
-  non-minimized windows (sorted by z-index), the `Taskbar`, and the `StartMenu`. Any
-  click on the background dispatches `CLEAR_FOCUS`; child components stop propagation
-  themselves so their clicks don't bubble up.
+- **`Desktop.tsx`** renders the desktop background and hosts the `DesktopIcon`s,
+  non-minimized windows (sorted by z-index, each looked up in `appRegistry` by
+  `appId`), the `Taskbar`, and the `StartMenu`. It renders one `DesktopIcon` per
+  registered app. Any click on the background dispatches `CLEAR_FOCUS`; child
+  components stop propagation themselves so their clicks don't bubble up.
 - **`DesktopIcon.tsx`** is a keyboard-focusable app icon (`role="button"`,
-  `tabIndex={0}`, 48×48 artwork): single click selects it (Win98 dashed outline),
-  double-click or Enter dispatches `OPEN_APP`. Icon artwork lives in `src/assets/icons/`.
+  `tabIndex={0}`, 32×32 artwork sourced from `iconMap[app.icon]`,
+  alt `${app.title} Icon`): single click selects it (Win98 dashed outline),
+  double-click or Enter dispatches `OPEN_APP`. Icon artwork lives in
+  `src/assets/icons/` and is mapped through `src/common/icons.ts`.
 - **`Taskbar.tsx`** is the fixed bottom bar: a Start button that toggles the start
   menu, one button per window (sorted by ascending z-index, focused window gets the
   `focused` class), and a `Clock`. Clicking a window button dispatches the action
   returned by `resolveTaskbarAction`.
 - **`StartMenu.tsx`** is the start menu popup (sidebar + items), shown when
   `isStartMenuOpen`. It closes on outside pointerdown (via `useOutsideClick`) and on
-  Escape; menu items dispatch `OPEN_APP` and then close. It stacks with the
-  `--win98-z-index-start-menu` token when no window is focused, otherwise it stacks
+  Escape. Currently its only item is **Shutdown** (icon via `iconMap['shutdown']`),
+  which closes the menu without dispatching a window action (real shutdown behaviour is
+  a TODO); apps are opened through desktop icons / the taskbar instead. It stacks with
+  the `--win98-z-index-start-menu` token when no window is focused, otherwise it stacks
   naturally with the windows.
 - **`Clock.tsx`** is a live 24-hour `HH:MM` clock that aligns its first update to
   the next minute boundary, then refreshes on a 60-second interval
@@ -358,6 +416,9 @@ Domain types live in `src/common/types.ts` (`Brand`, `Position`, `Size`, `IconNa
 domain — see [Content data model](#content-data-model) above). IDs are branded
 (`Brand<string, 'WindowId'>`) so `WindowId` and `AppId` are not interchangeable — they're
 cast to the branded type only at the boundary (`crypto.randomUUID() as WindowId`).
+`AppDescriptor` carries a `component: LazyExoticComponent<ComponentType<Record<string, never>>>`
+field — the code-split app content `Window` renders inside its body — and an `IconName`
+that `DesktopIcon` / `StartMenu` resolve through `iconMap` in `src/common/icons.ts`.
 
 ### Styling
 
@@ -365,16 +426,19 @@ cast to the branded type only at the boundary (`crypto.randomUUID() as WindowId`
   `.window-body`, buttons, etc.).
 - **`src/styles/tokens.css`** centralizes the Win98 palette, typography (font stack
   begins with `'Pixelated MS Sans Serif'`), spacing scale, a z-index scale
-  (`--win98-z-index-start-menu`), and a boot/splash palette
+  (`--win98-z-index-taskbar`, `--win98-z-index-start-menu`,
+  `--win98-z-index-window-loading`), and a boot/splash palette
   (`--win98-boot-sky-top`, `--win98-boot-sky-bottom`, `--win98-boot-cloud`) as
   `--win98-*` CSS custom properties. Components reference tokens, never raw hex
   colors.
 - **`src/styles/global.css`** adds desktop chrome: body overflow lock, `.desktop`
   background layer, `.window-resize-handle`, the desktop-icon selection styles
   (`.desktop-icon-container`, `.icon-selected`, `.icon-text-selected`), the taskbar /
-  start-menu / clock chrome (`.taskbar`, `.start-menu`, `.clock`, …), and a global
-  `font-family: var(--win98-font)`. Desktop icon labels use the `--win98-desktop-text`
-  token.
+  start-menu / clock chrome (`.taskbar`, `.start-menu`, `.clock`, …), a full-viewport
+  `.window-loading` wait-cursor overlay (stacked via
+  `--win98-z-index-window-loading`, shown by `Window` during the minimum loading delay
+  / `Suspense` fallback), and a global `font-family: var(--win98-font)`. Desktop icon
+  labels use the `--win98-desktop-text` token.
 - **Feature-scoped CSS:** some features colocate a stylesheet next to the component
   and import it directly (e.g. `src/features/boot/boot.css`,
   `src/features/shell/idleScreen.css`). These consume `--win98-*` tokens via `var()`
@@ -382,8 +446,9 @@ cast to the branded type only at the boundary (`crypto.randomUUID() as WindowId`
 - **`src/index.css`** maps those tokens into Tailwind v4 via a `@theme` block, so
   utilities like `bg-desktop`, `text-window-text`, and `font-win98` work. Import order
   matters: `98.css` → `tokens.css` → `global.css` → `tailwindcss`. Not every token
-  maps to a utility — `--win98-desktop-text`, `--win98-z-index-start-menu`, and the
-  `--win98-boot-*` palette are consumed directly via `var()`.
+  maps to a utility — `--win98-desktop-text`, `--win98-z-index-start-menu`,
+  `--win98-z-index-window-loading`, and the `--win98-boot-*` palette are consumed
+  directly via `var()`.
 
 ## Testing
 
@@ -395,11 +460,16 @@ cast to the branded type only at the boundary (`crypto.randomUUID() as WindowId`
   `StartMenu`) use `@testing-library/react` + `@testing-library/jest-dom`,
   rendering through a `WindowManagerContext.Provider` with a `vi.fn` dispatch to
   assert dispatched actions and rendered chrome — the provider is required only
-  for components that consume that context. `Desktop`, `Taskbar`, and `StartMenu`
-  tests additionally wrap in a `StartMenuContext.Provider`. `Clock` tests are
-  separate: they render `Clock` directly (it consumes no context), using fake
-  timers to drive the minute-boundary update and the 60-second refresh and to
-  assert timer cleanup on unmount. `BootScreen` and `IdleScreen` also render
+  for components that consume that context. `Window` tests are async and use fake
+  timers (`beforeEach`/`afterEach`), advancing `MIN_APP_LOADING_MS` before assertions
+  because `Window` enforces a minimum loading delay and wraps its body in `Suspense`
+  (rendering the descriptor's `lazy` component, not `children`). `Desktop` tests mock
+  `Window` to avoid that Suspense/timer machinery. `Desktop`, `Taskbar`, and
+  `StartMenu` tests additionally wrap in a `StartMenuContext.Provider`. `DesktopIcon`
+  tests assert the 32×32 `iconMap`-sourced artwork, selection, and keyboard open.
+  `Clock` tests are separate: they render `Clock` directly (it consumes no context),
+  using fake timers to drive the minute-boundary update and the 60-second refresh and
+  to assert timer cleanup on unmount. `BootScreen` and `IdleScreen` also render
   directly (no context): `BootScreen` tests assert the accessible status region,
   click/Enter/Space skip handlers, window-listener attach/remove on
   mount/unmount, and immediate dismiss when `prefersReducedMotion` is set;
@@ -423,10 +493,27 @@ cast to the branded type only at the boundary (`crypto.randomUUID() as WindowId`
   the initial matches value, change-event updates, and listener
   subscribe/unsubscribe.
 - **App tests** (`App.test.tsx`) use fake timers and mock `usePrefersReducedMotion`
-  to assert the boot→idle transition: the boot screen renders first, auto-dismisses
+  (and `Desktop`, stubbed as a `role="status"` / `aria-label="BernasOS desktop"` div)
+  to assert the boot→desktop transition: the boot screen renders first, auto-dismisses
   after `BOOT_MIN_DURATION_MS`, dismisses on click, and dismisses immediately when
   reduced motion is preferred. `sessionStorage` and `window.history` are reset
   between tests.
+- **App registry tests** (`apps/registry.test.ts`) assert the registry contains
+  exactly the expected app ids (`computer`, `about`, `contact`, `cv`, `projects`,
+  `terminal`), each entry's `id` matches its key, each `component` is a `React.lazy`
+  exotic (code-split), each icon resolves in `iconMap`, the singleton flags
+  (Computer/About/Contact/CV/Projects singleton, Terminal not), and — via `expect-type`
+  — that `appRegistry` is exactly `Record<AppId, AppDescriptor>` and `component` is
+  `LazyExoticComponent<ComponentType<Record<string, never>>>`.
+- **Route sync tests** (`apps/useRouteSync.test.tsx`) render the hook inside a
+  `MemoryRouter` (`/:appId?` route) with a `vi.fn` dispatch and assert both
+  directions: route → state (no `appId` → `CLEAR_FOCUS`; known `appId` with no window
+  → `OPEN_APP`; open-but-unfocused → `FOCUS_WINDOW`; minimized matching → `OPEN_APP`
+  restore; unknown `appId` → no dispatch) and state → route (opening an app navigates
+  to `/<appId>`, closing the last window returns to `/`, focus switching updates the
+  path).
+- **Boot config tests** (`boot/config.test.ts`) assert `BOOT_MIN_DURATION_MS`,
+  `BOOT_PLAYED_SESSION_KEY`, and `MIN_APP_LOADING_MS` (600ms).
 - **Type-level tests** use `expect-type` for compile-time assertions (no runtime logic).
 - **Action creator tests** (`windowManager/actions.test.ts`, `boot/actions.test.ts`)
   assert each creator's output and, via `expect-type`, that every creator returns a
