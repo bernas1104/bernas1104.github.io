@@ -2,10 +2,10 @@ import { lazy } from 'react';
 import { vi } from 'vitest';
 import type {
   AppDescriptor,
-  AppId,
   WindowId,
   WindowInstance,
 } from '@/features/desktop/types.ts';
+import type { AppId } from '@/common/types.ts';
 
 export const makeAppId = (id: string): AppId => id as AppId;
 export const makeWindowId = (id: string): WindowId => id as WindowId;

@@ -1,5 +1,4 @@
-// import { lazy } from 'react';
-import type { AppId } from '@/features/desktop/types.ts';
+import type { AppId } from '@/common/types.ts';
 import { useWindowManager } from '@/features/desktop/windowManager/index.ts';
 import { DesktopIcon } from '@/features/desktop/components/DesktopIcon.tsx';
 import { Window } from '@/features/desktop/components/Window.tsx';

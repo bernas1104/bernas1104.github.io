@@ -2,11 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { expectTypeOf } from 'expect-type';
 import { resolveTaskbarAction } from '@/features/desktop/utils/index.ts';
 import type { WindowAction } from '@/features/desktop/windowManager/index.ts';
-import type {
-  AppId,
-  WindowId,
-  WindowInstance,
-} from '@/features/desktop/types.ts';
+import type { WindowId, WindowInstance } from '@/features/desktop/types.ts';
+import type { AppId } from '@/common/types.ts';
 import {
   makeAppId,
   makeWindow,

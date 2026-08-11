@@ -1,4 +1,5 @@
-import type { AppDescriptor, AppId } from '@/features/desktop/types.ts';
+import type { AppDescriptor } from '@/features/desktop/types.ts';
+import type { AppId } from '@/common/types.ts';
 import React from 'react';
 
 export type AppRegistry = Record<AppId, AppDescriptor>;

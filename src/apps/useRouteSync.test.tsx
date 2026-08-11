@@ -1,5 +1,11 @@
-import { render, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
+import { fireEvent, render, waitFor } from '@testing-library/react';
+import {
+  MemoryRouter,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from 'react-router';
 import type { ActionDispatch } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useRouteSync } from '@/apps/useRouteSync.ts';
@@ -33,9 +39,15 @@ function RouteSyncHarness({
   state: DesktopState;
   dispatch: Dispatch;
 }) {
+  const navigate = useNavigate();
   useRouteSync(state, dispatch);
   const location = useLocation();
-  return <div data-testid="location">{location.pathname}</div>;
+  return (
+    <>
+      <div data-testid="location">{location.pathname}</div>
+      <button onClick={() => navigate(-1)}>Back</button>
+    </>
+  );
 }
 
 function renderRouteSync(
@@ -130,7 +142,7 @@ describe('useRouteSync', () => {
     });
   });
 
-  it('dispatches OPEN_APP to restore a minimized window matching the route', () => {
+  it('dispatches RESTORE_WINDOW to restore a minimized window matching the route', () => {
     const dispatch = makeDispatch();
     const win = makeWindow({
       id: makeWindowId('w-projects'),
@@ -147,12 +159,64 @@ describe('useRouteSync', () => {
     renderRouteSync('/projects', state, dispatch);
 
     expect(dispatch).toHaveBeenCalledWith({
-      type: 'OPEN_APP',
-      app: projectsApp,
+      type: 'RESTORE_WINDOW',
+      windowId: win.id,
     });
     expect(dispatch).not.toHaveBeenCalledWith(
       expect.objectContaining({ type: 'FOCUS_WINDOW' }),
     );
+  });
+
+  it('dispatches RESTORE_WINDOW for a minimized non-singleton Terminal window', () => {
+    const dispatch = makeDispatch();
+    const win = makeWindow({
+      id: makeWindowId('w-term'),
+      appId: makeAppId('terminal'),
+      title: 'Terminal',
+      state: 'minimized',
+      previousState: 'open',
+    });
+    const state = makeState({
+      windows: new Map([[win.id, win]]),
+      focusedWindowId: null,
+    });
+
+    renderRouteSync('/terminal', state, dispatch);
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'RESTORE_WINDOW',
+      windowId: win.id,
+    });
+    expect(dispatch).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'OPEN_APP' }),
+    );
+  });
+
+  it('does not steal focus from a second Terminal window when the route matches', () => {
+    const dispatch = makeDispatch();
+    const terminal1 = makeWindow({
+      id: makeWindowId('w-term-1'),
+      appId: makeAppId('terminal'),
+      title: 'Terminal',
+      state: 'open',
+    });
+    const terminal2 = makeWindow({
+      id: makeWindowId('w-term-2'),
+      appId: makeAppId('terminal'),
+      title: 'Terminal',
+      state: 'open',
+    });
+    const state = makeState({
+      windows: new Map([
+        [terminal1.id, terminal1],
+        [terminal2.id, terminal2],
+      ]),
+      focusedWindowId: terminal2.id,
+    });
+
+    renderRouteSync('/terminal', state, dispatch);
+
+    expect(dispatch).not.toHaveBeenCalled();
   });
 
   it('updates the URL hash when an app is opened (state -> route)', async () => {
@@ -280,6 +344,78 @@ describe('useRouteSync', () => {
 
     await waitFor(() => {
       expect(getByTestId('location').textContent).toBe('/projects');
+    });
+  });
+
+  it('pushes the route for a newly focused second Terminal window so Back returns to the prior app route', async () => {
+    const dispatch = makeDispatch();
+    const aboutWin = makeWindow({
+      id: makeWindowId('w-about'),
+      appId: makeAppId('about'),
+      title: 'About',
+      state: 'open',
+    });
+    const terminal1 = makeWindow({
+      id: makeWindowId('w-term-1'),
+      appId: makeAppId('terminal'),
+      title: 'Terminal',
+      state: 'open',
+    });
+    const initialState = makeState({
+      windows: new Map([
+        [aboutWin.id, aboutWin],
+        [terminal1.id, terminal1],
+      ]),
+      focusedWindowId: aboutWin.id,
+      nextZIndex: 3,
+      windowsOpenedCount: 2,
+    });
+
+    const { getByTestId, getByRole, rerender } = renderRouteSync(
+      '/about',
+      initialState,
+      dispatch,
+    );
+    expect(getByTestId('location').textContent).toBe('/about');
+
+    const terminal2 = makeWindow({
+      id: makeWindowId('w-term-2'),
+      appId: makeAppId('terminal'),
+      title: 'Terminal',
+      state: 'open',
+    });
+    const switchedState = makeState({
+      windows: new Map([
+        [aboutWin.id, aboutWin],
+        [terminal1.id, terminal1],
+        [terminal2.id, terminal2],
+      ]),
+      focusedWindowId: terminal2.id,
+      nextZIndex: 4,
+      windowsOpenedCount: 3,
+    });
+
+    rerender(
+      <MemoryRouter initialEntries={['/about']}>
+        <Routes>
+          <Route
+            path="/:appId?"
+            element={
+              <RouteSyncHarness state={switchedState} dispatch={dispatch} />
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(getByTestId('location').textContent).toBe('/terminal');
+    });
+
+    fireEvent.click(getByRole('button', { name: 'Back' }));
+
+    await waitFor(() => {
+      expect(getByTestId('location').textContent).toBe('/about');
     });
   });
 });

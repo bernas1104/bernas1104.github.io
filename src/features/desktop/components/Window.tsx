@@ -13,7 +13,6 @@ export type WindowProps = {
   app: AppDescriptor;
   window: WindowInstance;
   focusedWindowId?: WindowId | null;
-  children?: React.ReactNode;
 };
 
 export function Window(props: WindowProps) {
@@ -46,50 +45,46 @@ export function Window(props: WindowProps) {
 
   return (
     <>
-      {!minElapsed && <div className="window-loading" />}
-      {minElapsed && (
-        <Suspense fallback={<div className="window-loading" />}>
-          <div
-            className="window"
-            onPointerDown={() =>
-              dispatch({ type: 'FOCUS_WINDOW', windowId: props.window.id })
-            }
-            onClick={(e: React.MouseEvent<HTMLDivElement>) =>
-              e.stopPropagation()
-            }
-            style={{
-              zIndex: props.window.zIndex,
-              position: 'absolute',
-              top: isMaximized ? '0px' : `${props.window.position.y}px`,
-              left: isMaximized ? '0px' : `${props.window.position.x}px`,
-              width: isMaximized ? '100%' : `${props.window.size.width}px`,
-              height: isMaximized ? '100%' : `${props.window.size.height}px`,
-              transition: isDragging
-                ? 'none'
-                : 'top 0.2s, left 0.2s, width 0.2s, height 0.2s',
-            }}
-          >
-            <TitleBar
-              title={props.window.title}
-              window={props.window}
-              isFocused={props.window.id === props.focusedWindowId}
-              onDragStateChange={setIsDragging}
-            />
-            <div className="window-body">
-              <props.app.component />
-            </div>
-
-            {props.app.resizable && !isMaximized && (
-              <div
-                ref={ref}
-                className="window-resize-handle"
-                onPointerDown={(event) => onPointerDown(event)}
-                aria-label="Resize handle"
-              />
-            )}
+      <Suspense fallback={<div className="window-loading" />}>
+        <div
+          className="window"
+          onPointerDown={() =>
+            dispatch({ type: 'FOCUS_WINDOW', windowId: props.window.id })
+          }
+          onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}
+          style={{
+            zIndex: props.window.zIndex,
+            position: 'absolute',
+            top: isMaximized ? '0px' : `${props.window.position.y}px`,
+            left: isMaximized ? '0px' : `${props.window.position.x}px`,
+            width: isMaximized ? '100%' : `${props.window.size.width}px`,
+            height: isMaximized ? '100%' : `${props.window.size.height}px`,
+            transition: isDragging
+              ? 'none'
+              : 'top 0.2s, left 0.2s, width 0.2s, height 0.2s',
+          }}
+        >
+          <TitleBar
+            title={props.window.title}
+            window={props.window}
+            isFocused={props.window.id === props.focusedWindowId}
+            onDragStateChange={setIsDragging}
+          />
+          <div className="window-body">
+            <props.app.component />
           </div>
-        </Suspense>
-      )}
+
+          {props.app.resizable && !isMaximized && (
+            <div
+              ref={ref}
+              className="window-resize-handle"
+              onPointerDown={(event) => onPointerDown(event)}
+              aria-label="Resize handle"
+            />
+          )}
+        </div>
+      </Suspense>
+      {!minElapsed && <div className="window-loading" />}
     </>
   );
 }

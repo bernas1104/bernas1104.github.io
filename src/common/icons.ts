@@ -1,3 +1,4 @@
+import type { IconName } from '@/common/types.ts';
 import ComputerExplorerIcon from '@/assets/icons/computer_explorer-3.png';
 import ConnDialupIcon from '@/assets/icons/conn_dialup.png';
 import DesktopIcon from '@/assets/icons/desktop-1.png';
@@ -14,7 +15,7 @@ import ShutDownIcon from '@/assets/icons/shut_down_normal-3.png';
 import UserCardViewIcon from '@/assets/icons/user_card_view.png';
 import WindowsIcon from '@/assets/icons/windows-4.png';
 
-export const iconMap: Record<string, string> = {
+export const iconMap = {
   about: UserCardViewIcon,
   cv: MsInfo32Icon,
   projects: NetworkIcon,
@@ -30,4 +31,4 @@ export const iconMap: Record<string, string> = {
   shutdown: ShutDownIcon,
   desktop: DesktopIcon,
   windows: WindowsIcon,
-};
+} satisfies Record<IconName | 'desktop' | 'windows', string>;

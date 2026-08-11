@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { expectTypeOf } from 'expect-type';
 import type { ComponentType, LazyExoticComponent } from 'react';
 import { appRegistry, type AppRegistry } from '@/apps/index.ts';
-import type { AppDescriptor, AppId } from '@/features/desktop/types.ts';
-import type { IconName } from '@/common/types.ts';
+import type { AppDescriptor } from '@/features/desktop/types.ts';
+import type { AppId, IconName } from '@/common/types.ts';
 import { iconMap } from '@/common/icons.ts';
 
 const EXPECTED_APP_IDS = [

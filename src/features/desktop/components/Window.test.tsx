@@ -18,7 +18,7 @@ import {
   makeWindowId,
 } from '@/features/desktop/testUtils.ts';
 
-async function renderWindow(props: WindowProps) {
+async function renderWindow(props: WindowProps, advanceLoading = true) {
   const dispatch = vi.fn<(action: WindowAction) => void>();
   const utils = render(
     <WindowManagerContext.Provider
@@ -27,9 +27,11 @@ async function renderWindow(props: WindowProps) {
       <Window {...props} />
     </WindowManagerContext.Provider>,
   );
-  await act(async () => {
-    vi.advanceTimersByTime(MIN_APP_LOADING_MS);
-  });
+  if (advanceLoading) {
+    await act(async () => {
+      vi.advanceTimersByTime(MIN_APP_LOADING_MS);
+    });
+  }
   return { ...utils, dispatch };
 }
 
@@ -69,6 +71,30 @@ describe('Window', () => {
     expect(container.querySelector('.window')).toBeInTheDocument();
     expect(getByText('Notepad')).toBeInTheDocument();
     expect(container.querySelector('.window-body')).toBeInTheDocument();
+  });
+
+  it('mounts the window immediately and keeps the loading overlay until the minimum time elapses', async () => {
+    const app = makeApp({ id: makeAppId('a1') });
+    const win = makeWindow({ id: makeWindowId('w1'), state: 'open' });
+    const { container } = await renderWindow(
+      { app, window: win, focusedWindowId: win.id },
+      false,
+    );
+
+    expect(container.querySelector('.window-loading')).toBeInTheDocument();
+    expect(container.querySelector('.window')).not.toBeInTheDocument();
+
+    await act(async () => {
+      vi.advanceTimersByTime(MIN_APP_LOADING_MS - 1);
+    });
+    expect(container.querySelector('.window-loading')).toBeInTheDocument();
+    expect(container.querySelector('.window')).toBeInTheDocument();
+
+    await act(async () => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(container.querySelector('.window-loading')).not.toBeInTheDocument();
+    expect(container.querySelector('.window')).toBeInTheDocument();
   });
 
   it('positions and sizes the window from its position and size when open', async () => {

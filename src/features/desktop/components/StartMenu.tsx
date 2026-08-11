@@ -40,9 +40,10 @@ export function StartMenu() {
           </div>
         </div>
         <div className="start-menu-content">
-          <div
+          <button
+            type="button"
             className="start-menu-item"
-            onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
               e.stopPropagation();
               // TODO -- Shutdown functionality
               closeStartMenu();
@@ -50,7 +51,7 @@ export function StartMenu() {
           >
             <img src={iconMap['shutdown']} alt="Shutdown" />
             <span>Shutdown</span>
-          </div>
+          </button>
         </div>
       </div>
     )
