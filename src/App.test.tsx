@@ -15,6 +15,10 @@ vi.mock('@/features/boot/index.ts', async (importOriginal) => {
   };
 });
 
+vi.mock('@/features/desktop/components/Desktop.tsx', () => ({
+  Desktop: () => <div role="status" aria-label="BernasOS desktop" />,
+}));
+
 const mockedUsePrefersReducedMotion = vi.mocked(usePrefersReducedMotion);
 
 describe('App', () => {
@@ -37,7 +41,7 @@ describe('App', () => {
       screen.getByRole('status', { name: 'BernasOS loading' }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('status', { name: 'BernasOS idle screen' }),
+      screen.queryByRole('status', { name: 'BernasOS desktop' }),
     ).not.toBeInTheDocument();
   });
 
@@ -52,7 +56,7 @@ describe('App', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('auto-dismisses to the idle screen after BOOT_MIN_DURATION_MS', () => {
+  it('auto-dismisses to the desktop after BOOT_MIN_DURATION_MS', () => {
     render(<App />);
 
     act(() => {
@@ -66,20 +70,20 @@ describe('App', () => {
       vi.advanceTimersByTime(1);
     });
     expect(
-      screen.getByRole('status', { name: 'BernasOS idle screen' }),
+      screen.getByRole('status', { name: 'BernasOS desktop' }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('status', { name: 'BernasOS loading' }),
     ).not.toBeInTheDocument();
   });
 
-  it('skips to the idle screen when the boot screen is clicked', () => {
+  it('skips to the desktop when the boot screen is clicked', () => {
     render(<App />);
 
     fireEvent.click(screen.getByRole('status', { name: 'BernasOS loading' }));
 
     expect(
-      screen.getByRole('status', { name: 'BernasOS idle screen' }),
+      screen.getByRole('status', { name: 'BernasOS desktop' }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('status', { name: 'BernasOS loading' }),
@@ -91,7 +95,7 @@ describe('App', () => {
     render(<App />);
 
     expect(
-      screen.getByRole('status', { name: 'BernasOS idle screen' }),
+      screen.getByRole('status', { name: 'BernasOS desktop' }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('status', { name: 'BernasOS loading' }),

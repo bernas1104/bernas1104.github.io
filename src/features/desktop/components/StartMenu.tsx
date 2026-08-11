@@ -2,13 +2,12 @@ import { useEffect, useRef } from 'react';
 import { useOutsideClick } from '@/features/desktop/hooks/useOutsideClick.ts';
 import { useStartMenu } from '@/features/desktop/hooks/useStartMenu.ts';
 import { useWindowManager } from '@/features/desktop/windowManager/index.ts';
-import ComputerIcon from '@/assets/icons/computer_explorer-3.png';
-import type { AppId } from '@/features/desktop/types.ts';
+import { iconMap } from '@/common/icons.ts';
 
 export function StartMenu() {
   const ref = useRef<HTMLDivElement | null>(null);
 
-  const { state, dispatch } = useWindowManager();
+  const { state } = useWindowManager();
   const { isStartMenuOpen: isOpen, closeStartMenu } = useStartMenu();
   useOutsideClick(ref, closeStartMenu, true);
 
@@ -41,27 +40,18 @@ export function StartMenu() {
           </div>
         </div>
         <div className="start-menu-content">
-          <div
+          <button
+            type="button"
             className="start-menu-item"
-            onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
               e.stopPropagation();
-              dispatch({
-                type: 'OPEN_APP',
-                app: {
-                  id: '1' as AppId,
-                  title: 'BernasOS',
-                  defaultSize: { width: 400, height: 300 },
-                  singleton: true,
-                  resizable: true,
-                  icon: 'folder',
-                },
-              });
+              // TODO -- Shutdown functionality
               closeStartMenu();
             }}
           >
-            <img src={ComputerIcon} alt="My Computer" />
-            <span>My Computer</span>
-          </div>
+            <img src={iconMap['shutdown']} alt="Shutdown" />
+            <span>Shutdown</span>
+          </button>
         </div>
       </div>
     )

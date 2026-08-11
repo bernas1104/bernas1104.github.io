@@ -42,6 +42,7 @@
   /* --- Z-index scale --- */
   --win98-z-index-taskbar: 9999;
   --win98-z-index-start-menu: 10000;
+  --win98-z-index-window-loading: 10001;
 
   /* --- Boot / Splash --- */
   --win98-boot-sky-top: #87ceeb;

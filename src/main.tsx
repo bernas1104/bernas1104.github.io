@@ -1,16 +1,11 @@
 import { StrictMode } from 'react';
+import { RouterProvider } from 'react-router';
 import { createRoot } from 'react-dom/client';
+import { router } from '@/apps/routes.ts';
 import '@/index.css';
-import App from '@/App.tsx';
-import { WindowManagerProvider } from '@/features/desktop/windowManager/WindowManagerProvider.tsx';
-import { StartMenuProvider } from '@/features/desktop/StartMenuProvider.tsx';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <WindowManagerProvider>
-      <StartMenuProvider>
-        <App />
-      </StartMenuProvider>
-    </WindowManagerProvider>
+    <RouterProvider router={router} />
   </StrictMode>,
 );

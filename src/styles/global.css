@@ -63,6 +63,7 @@ body {
   );
   border: 1px dashed
     color-mix(in srgb, var(--win98-selection-text) 50%, transparent);
+  padding-bottom: 0 !important;
   padding-top: var(--win98-space-1) !important;
 }
 
@@ -72,7 +73,7 @@ body {
   align-items: center;
   outline: none;
   padding: var(--win98-space-8);
-  width: 80px;
+  width: 90px;
   cursor: pointer;
   user-select: none;
   color: var(--win98-desktop-text);
@@ -213,6 +214,11 @@ body {
   display: flex;
   align-items: center;
   gap: var(--win98-space-8);
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
   cursor: pointer;
   padding: var(--win98-space-4);
 
@@ -220,4 +226,18 @@ body {
     background-color: var(--win98-selection-bg);
     color: var(--win98-selection-text);
   }
+}
+
+.window-loading {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  font-size: 16px;
+  background-color: transparent;
+  z-index: calc(var(--win98-z-index-window-loading) + 1);
+  cursor: wait;
 }

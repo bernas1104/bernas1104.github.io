@@ -1,18 +1,10 @@
-import type { AppDescriptor, AppId } from '@/features/desktop/types.ts';
+import type { AppId } from '@/common/types.ts';
 import { useWindowManager } from '@/features/desktop/windowManager/index.ts';
 import { DesktopIcon } from '@/features/desktop/components/DesktopIcon.tsx';
 import { Window } from '@/features/desktop/components/Window.tsx';
 import { Taskbar } from '@/features/desktop/components/Taskbar.tsx';
 import { StartMenu } from '@/features/desktop/components/StartMenu.tsx';
-
-const bernasOsApp: AppDescriptor = {
-  id: '1' as AppId,
-  title: 'BernasOS',
-  defaultSize: { width: 400, height: 300 },
-  singleton: true,
-  resizable: true,
-  icon: 'folder',
-};
+import { appRegistry } from '@/apps/index.ts';
 
 export function Desktop() {
   const { state, dispatch } = useWindowManager();
@@ -31,14 +23,15 @@ export function Desktop() {
           return (
             <Window
               key={window.id}
-              app={bernasOsApp}
+              app={appRegistry[window.appId as AppId]}
               window={window}
               focusedWindowId={state.focusedWindowId}
             />
           );
         })}
-
-      <DesktopIcon app={bernasOsApp} />
+      {Object.values(appRegistry).map((app) => {
+        return <DesktopIcon key={app.id} app={app} />;
+      })}
       <Taskbar />
       <StartMenu />
     </div>

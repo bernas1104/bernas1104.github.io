@@ -1,7 +1,6 @@
 import { describe, it } from 'vitest';
 import { expectTypeOf } from 'expect-type';
 import type {
-  AppId,
   WindowId,
   AppDescriptor,
   WindowState,
@@ -9,7 +8,7 @@ import type {
   DesktopIcon,
   DesktopState,
 } from '@/features/desktop/types.ts';
-import type { IconName, Position, Size } from '@/common/types.ts';
+import type { AppId, IconName, Position, Size } from '@/common/types.ts';
 
 describe('AppId', () => {
   it('is a branded string', () => {

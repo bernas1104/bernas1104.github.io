@@ -1,5 +1,6 @@
-import { fireEvent, render } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render } from '@testing-library/react';
+import { lazy } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   Window,
   type WindowProps,
@@ -9,6 +10,7 @@ import {
   WindowManagerContext,
 } from '@/features/desktop/windowManager/index.ts';
 import type { WindowAction } from '@/features/desktop/windowManager/index.ts';
+import { MIN_APP_LOADING_MS } from '@/features/boot/config.ts';
 import {
   makeApp,
   makeAppId,
@@ -16,7 +18,7 @@ import {
   makeWindowId,
 } from '@/features/desktop/testUtils.ts';
 
-function renderWindow(props: WindowProps) {
+async function renderWindow(props: WindowProps, advanceLoading = true) {
   const dispatch = vi.fn<(action: WindowAction) => void>();
   const utils = render(
     <WindowManagerContext.Provider
@@ -25,18 +27,28 @@ function renderWindow(props: WindowProps) {
       <Window {...props} />
     </WindowManagerContext.Provider>,
   );
+  if (advanceLoading) {
+    await act(async () => {
+      vi.advanceTimersByTime(MIN_APP_LOADING_MS);
+    });
+  }
   return { ...utils, dispatch };
 }
 
 describe('Window', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
-  it('renders nothing when minimized', () => {
+  it('renders nothing when minimized', async () => {
     const app = makeApp({ id: makeAppId('a1') });
     const win = makeWindow({ id: makeWindowId('w1'), state: 'minimized' });
-    const { container } = renderWindow({
+    const { container } = await renderWindow({
       app,
       window: win,
       focusedWindowId: win.id,
@@ -44,14 +56,14 @@ describe('Window', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders the window chrome with title and body when open', () => {
+  it('renders the window chrome with title and body when open', async () => {
     const app = makeApp({ id: makeAppId('a1') });
     const win = makeWindow({
       id: makeWindowId('w1'),
       title: 'Notepad',
       state: 'open',
     });
-    const { container, getByText } = renderWindow({
+    const { container, getByText } = await renderWindow({
       app,
       window: win,
       focusedWindowId: win.id,
@@ -61,7 +73,31 @@ describe('Window', () => {
     expect(container.querySelector('.window-body')).toBeInTheDocument();
   });
 
-  it('positions and sizes the window from its position and size when open', () => {
+  it('mounts the window immediately and keeps the loading overlay until the minimum time elapses', async () => {
+    const app = makeApp({ id: makeAppId('a1') });
+    const win = makeWindow({ id: makeWindowId('w1'), state: 'open' });
+    const { container } = await renderWindow(
+      { app, window: win, focusedWindowId: win.id },
+      false,
+    );
+
+    expect(container.querySelector('.window-loading')).toBeInTheDocument();
+    expect(container.querySelector('.window')).not.toBeInTheDocument();
+
+    await act(async () => {
+      vi.advanceTimersByTime(MIN_APP_LOADING_MS - 1);
+    });
+    expect(container.querySelector('.window-loading')).toBeInTheDocument();
+    expect(container.querySelector('.window')).toBeInTheDocument();
+
+    await act(async () => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(container.querySelector('.window-loading')).not.toBeInTheDocument();
+    expect(container.querySelector('.window')).toBeInTheDocument();
+  });
+
+  it('positions and sizes the window from its position and size when open', async () => {
     const app = makeApp({ id: makeAppId('a1') });
     const win = makeWindow({
       id: makeWindowId('w1'),
@@ -69,7 +105,7 @@ describe('Window', () => {
       size: { width: 320, height: 240 },
       state: 'open',
     });
-    const { container } = renderWindow({
+    const { container } = await renderWindow({
       app,
       window: win,
       focusedWindowId: win.id,
@@ -81,7 +117,7 @@ describe('Window', () => {
     expect(el.style.height).toBe('240px');
   });
 
-  it('fills the viewport when maximized', () => {
+  it('fills the viewport when maximized', async () => {
     const app = makeApp({ id: makeAppId('a1'), resizable: true });
     const win = makeWindow({
       id: makeWindowId('w1'),
@@ -89,7 +125,7 @@ describe('Window', () => {
       position: { x: 120, y: 80 },
       size: { width: 320, height: 240 },
     });
-    const { container } = renderWindow({
+    const { container } = await renderWindow({
       app,
       window: win,
       focusedWindowId: win.id,
@@ -101,14 +137,14 @@ describe('Window', () => {
     expect(el.style.height).toBe('100%');
   });
 
-  it('applies the window zIndex as the z-index style', () => {
+  it('applies the window zIndex as the z-index style', async () => {
     const app = makeApp({ id: makeAppId('a1') });
     const win = makeWindow({
       id: makeWindowId('w1'),
       zIndex: 7,
       state: 'open',
     });
-    const { container } = renderWindow({
+    const { container } = await renderWindow({
       app,
       window: win,
       focusedWindowId: win.id,
@@ -118,10 +154,10 @@ describe('Window', () => {
     ).toBe('7');
   });
 
-  it('renders a resize handle when the app is resizable and the window is open', () => {
+  it('renders a resize handle when the app is resizable and the window is open', async () => {
     const app = makeApp({ id: makeAppId('a1'), resizable: true });
     const win = makeWindow({ id: makeWindowId('w1'), state: 'open' });
-    const { getByLabelText } = renderWindow({
+    const { getByLabelText } = await renderWindow({
       app,
       window: win,
       focusedWindowId: win.id,
@@ -129,10 +165,10 @@ describe('Window', () => {
     expect(getByLabelText('Resize handle')).toBeInTheDocument();
   });
 
-  it('does not render a resize handle when the app is not resizable', () => {
+  it('does not render a resize handle when the app is not resizable', async () => {
     const app = makeApp({ id: makeAppId('a1'), resizable: false });
     const win = makeWindow({ id: makeWindowId('w1'), state: 'open' });
-    const { queryByLabelText } = renderWindow({
+    const { queryByLabelText } = await renderWindow({
       app,
       window: win,
       focusedWindowId: win.id,
@@ -140,10 +176,10 @@ describe('Window', () => {
     expect(queryByLabelText('Resize handle')).not.toBeInTheDocument();
   });
 
-  it('does not render a resize handle when the window is maximized', () => {
+  it('does not render a resize handle when the window is maximized', async () => {
     const app = makeApp({ id: makeAppId('a1'), resizable: true });
     const win = makeWindow({ id: makeWindowId('w1'), state: 'maximized' });
-    const { queryByLabelText } = renderWindow({
+    const { queryByLabelText } = await renderWindow({
       app,
       window: win,
       focusedWindowId: win.id,
@@ -151,10 +187,10 @@ describe('Window', () => {
     expect(queryByLabelText('Resize handle')).not.toBeInTheDocument();
   });
 
-  it('dispatches FOCUS_WINDOW when the window receives a pointer down', () => {
+  it('dispatches FOCUS_WINDOW when the window receives a pointer down', async () => {
     const app = makeApp({ id: makeAppId('a1') });
     const win = makeWindow({ id: makeWindowId('w1'), state: 'open' });
-    const { container, dispatch } = renderWindow({
+    const { container, dispatch } = await renderWindow({
       app,
       window: win,
       focusedWindowId: win.id,
@@ -166,14 +202,14 @@ describe('Window', () => {
     });
   });
 
-  it('dispatches RESIZE_WINDOW with the new size when the resize handle is dragged', () => {
+  it('dispatches RESIZE_WINDOW with the new size when the resize handle is dragged', async () => {
     const app = makeApp({ id: makeAppId('a1'), resizable: true });
     const win = makeWindow({
       id: makeWindowId('w1'),
       size: { width: 400, height: 300 },
       state: 'open',
     });
-    const { getByLabelText, dispatch } = renderWindow({
+    const { getByLabelText, dispatch } = await renderWindow({
       app,
       window: win,
       focusedWindowId: win.id,
@@ -188,10 +224,10 @@ describe('Window', () => {
     });
   });
 
-  it('animates the window geometry by default', () => {
+  it('animates the window geometry by default', async () => {
     const app = makeApp({ id: makeAppId('a1') });
     const win = makeWindow({ id: makeWindowId('w1'), state: 'open' });
-    const { container } = renderWindow({
+    const { container } = await renderWindow({
       app,
       window: win,
       focusedWindowId: win.id,
@@ -201,10 +237,10 @@ describe('Window', () => {
     expect(winEl.style.transition).toContain('width 0.2s');
   });
 
-  it('disables the transition while the title bar is being dragged', () => {
+  it('disables the transition while the title bar is being dragged', async () => {
     const app = makeApp({ id: makeAppId('a1') });
     const win = makeWindow({ id: makeWindowId('w1'), state: 'open' });
-    const { container } = renderWindow({
+    const { container } = await renderWindow({
       app,
       window: win,
       focusedWindowId: win.id,
@@ -218,10 +254,10 @@ describe('Window', () => {
     expect(winEl.style.transition).not.toBe('none');
   });
 
-  it('passes the focused state to the title bar', () => {
+  it('passes the focused state to the title bar', async () => {
     const app = makeApp({ id: makeAppId('a1') });
     const win = makeWindow({ id: makeWindowId('w1'), state: 'open' });
-    const { container } = renderWindow({
+    const { container } = await renderWindow({
       app,
       window: win,
       focusedWindowId: win.id,
@@ -229,10 +265,10 @@ describe('Window', () => {
     expect(container.querySelector('.title-bar')).not.toHaveClass('inactive');
   });
 
-  it('passes the unfocused state to the title bar', () => {
+  it('passes the unfocused state to the title bar', async () => {
     const app = makeApp({ id: makeAppId('a1') });
     const win = makeWindow({ id: makeWindowId('w1'), state: 'open' });
-    const { container } = renderWindow({
+    const { container } = await renderWindow({
       app,
       window: win,
       focusedWindowId: null,
@@ -240,29 +276,33 @@ describe('Window', () => {
     expect(container.querySelector('.title-bar')).toHaveClass('inactive');
   });
 
-  it('renders children inside the window body', () => {
-    const app = makeApp({ id: makeAppId('a1') });
+  it('renders the app component inside the window body', async () => {
+    const app = makeApp({
+      id: makeAppId('a1'),
+      component: lazy(() =>
+        Promise.resolve({ default: () => <p>Hello from app</p> }),
+      ),
+    });
     const win = makeWindow({ id: makeWindowId('w1'), state: 'open' });
-    const { getByText } = render(
-      <WindowManagerContext.Provider
-        value={{ state: initialWindowsState, dispatch: vi.fn() }}
-      >
-        <Window app={app} window={win} focusedWindowId={win.id}>
-          <p>Hello from app</p>
-        </Window>
-      </WindowManagerContext.Provider>,
-    );
+    const { getByText, container } = await renderWindow({
+      app,
+      window: win,
+      focusedWindowId: win.id,
+    });
     expect(getByText('Hello from app')).toBeInTheDocument();
+    expect(container.querySelector('.window-body')).toContainElement(
+      getByText('Hello from app'),
+    );
   });
 
-  it('dispatches MOVE_WINDOW when the title bar is dragged', () => {
+  it('dispatches MOVE_WINDOW when the title bar is dragged', async () => {
     const app = makeApp({ id: makeAppId('a1') });
     const win = makeWindow({
       id: makeWindowId('w1'),
       state: 'open',
       position: { x: 100, y: 100 },
     });
-    const { container, dispatch } = renderWindow({
+    const { container, dispatch } = await renderWindow({
       app,
       window: win,
       focusedWindowId: win.id,
@@ -277,14 +317,14 @@ describe('Window', () => {
     });
   });
 
-  it('does not dispatch MOVE_WINDOW when a maximized title bar is dragged', () => {
+  it('does not dispatch MOVE_WINDOW when a maximized title bar is dragged', async () => {
     const app = makeApp({ id: makeAppId('a1') });
     const win = makeWindow({
       id: makeWindowId('w1'),
       state: 'maximized',
       position: { x: 100, y: 100 },
     });
-    const { container, dispatch } = renderWindow({
+    const { container, dispatch } = await renderWindow({
       app,
       window: win,
       focusedWindowId: win.id,
