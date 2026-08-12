@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useOutsideClick } from '@/features/desktop/hooks/useOutsideClick.ts';
 import { useStartMenu } from '@/features/desktop/hooks/useStartMenu.ts';
 import { useWindowManager } from '@/features/desktop/windowManager/index.ts';
+import { beginShutdown, useShutdown } from '@/features/boot/shutdown/index.ts';
 import { iconMap } from '@/common/icons.ts';
 import { appRegistry } from '@/apps/index.ts';
 
@@ -10,6 +11,7 @@ export function StartMenu() {
 
   const { state, dispatch } = useWindowManager();
   const { isStartMenuOpen: isOpen, closeStartMenu } = useStartMenu();
+  const { dispatch: shutdownDispatch } = useShutdown();
   useOutsideClick(ref, closeStartMenu, true);
 
   useEffect(() => {
@@ -62,8 +64,8 @@ export function StartMenu() {
             className="start-menu-item"
             onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
               e.stopPropagation();
-              // TODO -- Shutdown functionality
               closeStartMenu();
+              shutdownDispatch(beginShutdown());
             }}
           >
             <img src={iconMap['shutdown']} alt="Shutdown" />

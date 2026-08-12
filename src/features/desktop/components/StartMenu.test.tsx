@@ -1,9 +1,14 @@
 import { fireEvent, render } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { Dispatch } from 'react';
 import { StartMenu } from '@/features/desktop/components/StartMenu.tsx';
 import { WindowManagerContext } from '@/features/desktop/windowManager/index.ts';
 import type { WindowAction } from '@/features/desktop/windowManager/index.ts';
 import { StartMenuContext } from '@/features/desktop/StartMenuContext.tsx';
+import {
+  ShutdownContext,
+  type ShutdownAction,
+} from '@/features/boot/shutdown/index.ts';
 import { appRegistry } from '@/apps/index.ts';
 import type {
   DesktopState,
@@ -29,6 +34,7 @@ interface RenderOptions {
   isStartMenuOpen?: boolean;
   closeStartMenu?: () => void;
   onStartMenuToggle?: () => void;
+  shutdownDispatch?: Dispatch<ShutdownAction>;
 }
 
 function renderStartMenu({
@@ -36,6 +42,7 @@ function renderStartMenu({
   isStartMenuOpen = true,
   closeStartMenu = vi.fn(),
   onStartMenuToggle = vi.fn(),
+  shutdownDispatch = vi.fn(),
 }: RenderOptions = {}) {
   const dispatch = vi.fn<(action: WindowAction) => void>();
   const utils = render(
@@ -43,11 +50,21 @@ function renderStartMenu({
       <StartMenuContext.Provider
         value={{ isStartMenuOpen, closeStartMenu, onStartMenuToggle }}
       >
-        <StartMenu />
+        <ShutdownContext.Provider
+          value={{ state: { status: 'idle' }, dispatch: shutdownDispatch }}
+        >
+          <StartMenu />
+        </ShutdownContext.Provider>
       </StartMenuContext.Provider>
     </WindowManagerContext.Provider>,
   );
-  return { ...utils, dispatch, closeStartMenu, onStartMenuToggle };
+  return {
+    ...utils,
+    dispatch,
+    closeStartMenu,
+    onStartMenuToggle,
+    shutdownDispatch,
+  };
 }
 
 function dispatchPointerDown(target: Node): void {
@@ -132,8 +149,9 @@ describe('StartMenu', () => {
     expect(closeStartMenu).toHaveBeenCalledTimes(1);
   });
 
-  it('closes the menu without dispatching a window action when the Shutdown item is clicked', () => {
-    const { getByText, dispatch, closeStartMenu } = renderStartMenu();
+  it('dispatches BEGIN_SHUTDOWN and closes the menu when the Shutdown item is clicked', () => {
+    const { getByText, dispatch, shutdownDispatch, closeStartMenu } =
+      renderStartMenu();
     const shutdownItem = getByText('Shutdown').closest(
       '.start-menu-item',
     ) as HTMLElement;
@@ -141,6 +159,7 @@ describe('StartMenu', () => {
     fireEvent.click(shutdownItem);
 
     expect(dispatch).not.toHaveBeenCalled();
+    expect(shutdownDispatch).toHaveBeenCalledWith({ type: 'BEGIN_SHUTDOWN' });
     expect(closeStartMenu).toHaveBeenCalledTimes(1);
   });
 

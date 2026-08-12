@@ -5,6 +5,7 @@ import {
   BOOT_MIN_DURATION_MS,
   usePrefersReducedMotion,
 } from '@/features/boot/index.ts';
+import { useShutdown } from '@/features/boot/shutdown/index.ts';
 
 vi.mock('@/features/boot/index.ts', async (importOriginal) => {
   const actual =
@@ -15,11 +16,21 @@ vi.mock('@/features/boot/index.ts', async (importOriginal) => {
   };
 });
 
+vi.mock('@/features/boot/shutdown/index.ts', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@/features/boot/shutdown/index.ts')>();
+  return {
+    ...actual,
+    useShutdown: vi.fn(),
+  };
+});
+
 vi.mock('@/features/desktop/components/Desktop.tsx', () => ({
   Desktop: () => <div role="status" aria-label="BernasOS desktop" />,
 }));
 
 const mockedUsePrefersReducedMotion = vi.mocked(usePrefersReducedMotion);
+const mockedUseShutdown = vi.mocked(useShutdown);
 
 describe('App', () => {
   beforeEach(() => {
@@ -27,6 +38,10 @@ describe('App', () => {
     sessionStorage.clear();
     window.history.replaceState({}, '', '/');
     mockedUsePrefersReducedMotion.mockReturnValue(false);
+    mockedUseShutdown.mockReturnValue({
+      state: { status: 'idle' },
+      dispatch: vi.fn(),
+    });
   });
 
   afterEach(() => {
@@ -99,6 +114,36 @@ describe('App', () => {
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('status', { name: 'BernasOS loading' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders the boot screen while shutting down and hides the desktop', () => {
+    mockedUseShutdown.mockReturnValue({
+      state: { status: 'shuttingDown' },
+      dispatch: vi.fn(),
+    });
+    render(<App />);
+
+    expect(
+      screen.getByRole('status', { name: 'BernasOS loading' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('status', { name: 'BernasOS desktop' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders the shutdown screen when off and hides the desktop', () => {
+    mockedUseShutdown.mockReturnValue({
+      state: { status: 'off' },
+      dispatch: vi.fn(),
+    });
+    render(<App />);
+
+    expect(
+      screen.getByRole('status', { name: 'BernasOS shutdown complete' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('status', { name: 'BernasOS desktop' }),
     ).not.toBeInTheDocument();
   });
 });

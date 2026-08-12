@@ -11,6 +11,7 @@ import type {
 } from '@/features/desktop/types.ts';
 import { makeWindow, makeWindowId } from '@/features/desktop/testUtils.ts';
 import { StartMenuContext } from '@/features/desktop/StartMenuContext.tsx';
+import { ShutdownContext } from '@/features/boot/shutdown/index.ts';
 
 vi.mock('@/features/desktop/components/Window.tsx', () => ({
   Window: ({ window, focusedWindowId }: WindowProps) => {
@@ -47,7 +48,11 @@ function renderDesktop(state: DesktopState = makeState()) {
           closeStartMenu: vi.fn(),
         }}
       >
-        <Desktop />
+        <ShutdownContext.Provider
+          value={{ state: { status: 'idle' }, dispatch: vi.fn() }}
+        >
+          <Desktop />
+        </ShutdownContext.Provider>
       </StartMenuContext.Provider>
     </WindowManagerContext.Provider>,
   );

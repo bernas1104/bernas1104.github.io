@@ -1,0 +1,14 @@
+.shutdown-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: var(--win98-shutdown-bg);
+  color: var(--win98-shutdown-text);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: var(--win98-font-mono);
+  font-size: 2rem;
+}

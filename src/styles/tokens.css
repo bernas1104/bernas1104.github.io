@@ -48,4 +48,8 @@
   --win98-boot-sky-top: #87ceeb;
   --win98-boot-sky-bottom: #b0e0e6;
   --win98-boot-cloud: #ffffff;
+
+  /* --- Shutdown --- */
+  --win98-shutdown-bg: #000000;
+  --win98-shutdown-text: #ffa500;
 }
