@@ -61,8 +61,8 @@ src/
 ├── main.tsx                 # React entry point (mounts RouterProvider with the hash router)
 ├── index.css                # CSS entry: 98.css → tokens → global → tailwind
 ├── assets/
-│   ├── avatar.jpeg          # About app avatar
-│   └── icons/               # Desktop/app icon artwork (computer_explorer-*.png, ms_dos-*.png, github.png, …)
+│   ├── avatar.jpeg          # About/CV app avatar
+│   └── icons/               # Desktop/app icon artwork (computer_explorer-*.png, ms_dos-*.png, github.png, linkedin.png, …)
 ├── common/
 │   ├── types.ts             # Brand, Position, Size, IconName
 │   ├── types.test.ts        # Type-level tests (expect-type)
@@ -70,16 +70,20 @@ src/
 ├── data/                    # Personal-site content data model + placeholder data
 │   ├── types.ts             # About, Cv, Project, Contact, Skill/SkillGroup, Timeline*, Link, SocialLink, Url, MonthYear
 │   ├── types.test.ts        # Type-level tests (expect-type)
-│   ├── about.ts             # Placeholder About content (name/role/summary/avatar)
-│   ├── contact.ts           # Placeholder Contact content
-│   ├── cv.ts                # Placeholder Cv content (about + contact + experience + education + skills)
+│   ├── about.ts             # Real About content (name/role/summary/avatar)
+│   ├── contact.ts           # Real Contact content (email, location, GitHub + LinkedIn socials)
+│   ├── cv.ts                # Real Cv content (about + contact + experience + education + skills)
 │   ├── projects.ts          # Placeholder Project[] content
 │   └── index.ts             # Barrel: export type for types, then data re-exports
 ├── apps/                    # App registry, routing, and route ↔ state sync
-│   ├── about/                    # About app (real content; other apps still placeholder)
+│   ├── about/                    # About app (real content)
 │   │   ├── AboutApp.tsx               # Tree-view bio + avatar, sourced from src/data/about.ts
 │   │   ├── AboutApp.test.tsx
 │   │   └── about.css                  # About app styles (consumes --win98-* tokens)
+│   ├── cv/                        # CV app (real content)
+│   │   ├── Cv.tsx                    # Fieldset-based CV layout, sourced from src/data/cv.ts
+│   │   ├── Cv.test.tsx
+│   │   └── cv.css                    # CV app styles (consumes --win98-* tokens)
 │   ├── PlaceholderApp.tsx       # Lazy placeholder rendered until real app content lands
 │   ├── registry.ts              # appRegistry: Record<AppId, AppDescriptor> (lazy components)
 │   ├── registry.test.ts         # Registry shape + per-app assertions (type-level + runtime)
@@ -232,10 +236,12 @@ consumed by future UI features, decoupled from the window/desktop domain:
 - **`types.test.ts`** is a colocated type-level test using `expect-type` /
   `expectTypeOf` to assert each type's shape and the branded / extension
   relationships above. No runtime logic.
-- **`about.ts`** / **`contact.ts`** / **`cv.ts`** / **`projects.ts`** export
-  placeholder content (each marked with a `// PLACEHOLDER` comment) to be replaced
-  with real data; `about.ts` already carries a name/role/summary plus an `avatar: Url`
-  imported from `src/assets/avatar.jpeg`.
+- **`about.ts`** / **`contact.ts`** / **`cv.ts`** carry real content: `about.ts` exports
+  name/role/summary plus an `avatar: Url` imported from `src/assets/avatar.jpeg`;
+  `contact.ts` exports the real email, location (Brasília), and GitHub + LinkedIn
+  `socials`; `cv.ts` exports real experience, education, and skill groups.
+  **`projects.ts`** still exports placeholder content (marked `// PLACEHOLDER`) to be
+  replaced with real data.
 - **`index.ts`** is the barrel: `export type` for the types (required by
   `verbatimModuleSyntax`), then the data re-exports.
 
@@ -276,9 +282,10 @@ desktop and the URL:
   a `component: React.lazy(...)` for code-splitting (the lazy component is what `Window`
   renders inside its body). `About`, `CV`, `Projects`, `Contact`, and `Computer` are
   singletons (reusing an existing window); `Terminal` allows multiple instances.
-  Real app content lives under `src/apps/<app>/` — `src/apps/about/AboutApp.tsx` is
-  the first, rendered for the `about` entry (resizable) — while the other apps still
-  use `PlaceholderApp.tsx` until their content lands.
+  Real app content lives under `src/apps/<app>/` — `src/apps/about/AboutApp.tsx` and
+  `src/apps/cv/Cv.tsx`, rendered for the `about` / `cv` entries (both resizable) —
+  while `computer`, `contact`, `projects`, and `terminal` still use `PlaceholderApp.tsx`
+  until their content lands.
 - **`routes.ts`** builds a `createHashRouter` with a single `/:appId?` route whose
   component is `AppShell` — so the URL hash mirrors the focused app (`/#/projects`,
   `/#/`, …).
@@ -466,7 +473,10 @@ that `DesktopIcon` / `StartMenu` resolve through `iconMap` in `src/common/icons.
   `StartMenu`) use `@testing-library/react` + `@testing-library/jest-dom`,
   rendering through a `WindowManagerContext.Provider` with a `vi.fn` dispatch to
   assert dispatched actions and rendered chrome — the provider is required only
-  for components that consume that context. `Window` tests are async (the app content
+  for components that consume that context. The real app content components
+  (`AboutApp`, `Cv`) are tested separately: they render directly (no context) and
+  assert their sections/copy come from the `src/data/` sources rather than
+  hardcoded placeholders. `Window` tests are async (the app content
   comes from the descriptor's `lazy` component, not `children`) and assert the
   `.window-loading` overlay shows only while the lazy component resolves — no fake
   timers or minimum-loading delay. `Desktop` tests mock
