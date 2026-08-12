@@ -36,10 +36,10 @@ export const appRegistry: AppRegistry = {
     id: 'cv' as AppId,
     title: 'CV',
     icon: 'cv',
-    defaultSize: { width: 600, height: 800 },
+    defaultSize: { width: 400, height: 300 },
     resizable: true,
     singleton: true,
-    component: React.lazy(() => import('@/apps/PlaceholderApp.tsx')),
+    component: React.lazy(() => import('@/apps/cv/Cv.tsx')),
   },
   ['projects' as AppId]: {
     id: 'projects' as AppId,
