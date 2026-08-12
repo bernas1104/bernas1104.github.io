@@ -1,0 +1,63 @@
+.contact-app-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--win98-space-12);
+  color: var(--win98-window-text);
+
+  h2 {
+    font-size: 1em;
+    font-weight: bold;
+    margin: 0 0 var(--win98-space-8);
+  }
+
+  section {
+    min-width: 0;
+  }
+}
+
+.contact-details {
+  margin: 0;
+
+  & > div {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: var(--win98-space-8);
+    align-items: center;
+    margin-bottom: var(--win98-space-8);
+  }
+
+  dt {
+    font-weight: bold;
+  }
+
+  dd {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--win98-space-8);
+    min-width: 0;
+    margin: 0;
+  }
+
+  a {
+    overflow-wrap: anywhere;
+  }
+}
+
+.contact-socials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--win98-space-8);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+
+  a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--win98-space-4);
+  }
+
+  svg {
+    flex: 0 0 auto;
+  }
+}

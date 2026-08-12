@@ -277,15 +277,15 @@ The window manager follows a Redux-like pattern without Redux:
 desktop and the URL:
 
 - **`registry.ts`** / **`index.ts`** define `appRegistry: Record<AppId, AppDescriptor>`
-  — the catalog of apps (`computer`, `about`, `contact`, `cv`, `projects`, `terminal`).
+  — the catalog of apps (`about`, `contact`, `cv`, `projects`, `terminal`).
   Each entry carries its `IconName`, `defaultSize`, `resizable` / `singleton` flags, and
   a `component: React.lazy(...)` for code-splitting (the lazy component is what `Window`
-  renders inside its body). `About`, `CV`, `Projects`, `Contact`, and `Computer` are
+  renders inside its body). `About`, `CV`, `Projects`, and `Contact` are
   singletons (reusing an existing window); `Terminal` allows multiple instances.
-  Real app content lives under `src/apps/<app>/` — `src/apps/about/AboutApp.tsx` and
-  `src/apps/cv/Cv.tsx`, rendered for the `about` / `cv` entries (both resizable) —
-  while `computer`, `contact`, `projects`, and `terminal` still use `PlaceholderApp.tsx`
-  until their content lands.
+  Real app content lives under `src/apps/<app>/` — `src/apps/about/AboutApp.tsx`,
+  `src/apps/cv/Cv.tsx`, and `src/apps/contact/ContactApp.tsx`, rendered for the
+  `about` / `cv` (both resizable) and `contact` entries — while `projects` and `terminal`
+  still use `PlaceholderApp.tsx` until their content lands.
 - **`routes.ts`** builds a `createHashRouter` with a single `/:appId?` route whose
   component is `AppShell` — so the URL hash mirrors the focused app (`/#/projects`,
   `/#/`, …).
@@ -515,10 +515,10 @@ that `DesktopIcon` / `StartMenu` resolve through `iconMap` in `src/common/icons.
   reduced motion is preferred. `sessionStorage` and `window.history` are reset
   between tests.
 - **App registry tests** (`apps/registry.test.ts`) assert the registry contains
-  exactly the expected app ids (`computer`, `about`, `contact`, `cv`, `projects`,
+  exactly the expected app ids (`about`, `contact`, `cv`, `projects`,
   `terminal`), each entry's `id` matches its key, each `component` is a `React.lazy`
   exotic (code-split), each icon resolves in `iconMap`, the singleton flags
-  (Computer/About/Contact/CV/Projects singleton, Terminal not), and — via `expect-type`
+  (About/Contact/CV/Projects singleton, Terminal not), and — via `expect-type`
   — that `appRegistry` is exactly `Record<AppId, AppDescriptor>` and `component` is
   `LazyExoticComponent<ComponentType<Record<string, never>>>`.
 - **Route sync tests** (`apps/useRouteSync.test.tsx`) render the hook inside a

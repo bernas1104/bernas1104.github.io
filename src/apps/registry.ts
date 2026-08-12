@@ -5,14 +5,14 @@ import React from 'react';
 export type AppRegistry = Record<AppId, AppDescriptor>;
 
 export const appRegistry: AppRegistry = {
-  ['computer' as AppId]: {
-    id: 'computer' as AppId,
-    title: 'My Computer',
+  ['cv' as AppId]: {
+    id: 'cv' as AppId,
+    title: 'Curriculum',
     icon: 'computer',
-    defaultSize: { width: 600, height: 400 },
+    defaultSize: { width: 400, height: 300 },
     resizable: true,
     singleton: true,
-    component: React.lazy(() => import('@/apps/PlaceholderApp.tsx')),
+    component: React.lazy(() => import('@/apps/cv/Cv.tsx')),
   },
   ['about' as AppId]: {
     id: 'about' as AppId,
@@ -30,16 +30,7 @@ export const appRegistry: AppRegistry = {
     defaultSize: { width: 400, height: 300 },
     resizable: false,
     singleton: true,
-    component: React.lazy(() => import('@/apps/PlaceholderApp.tsx')),
-  },
-  ['cv' as AppId]: {
-    id: 'cv' as AppId,
-    title: 'CV',
-    icon: 'cv',
-    defaultSize: { width: 400, height: 300 },
-    resizable: true,
-    singleton: true,
-    component: React.lazy(() => import('@/apps/cv/Cv.tsx')),
+    component: React.lazy(() => import('@/apps/contact/ContactApp.tsx')),
   },
   ['projects' as AppId]: {
     id: 'projects' as AppId,

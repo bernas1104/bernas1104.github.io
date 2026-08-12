@@ -7,7 +7,6 @@ import type { AppId, IconName } from '@/common/types.ts';
 import { iconMap } from '@/common/icons.ts';
 
 const EXPECTED_APP_IDS = [
-  'computer',
   'about',
   'contact',
   'cv',
@@ -99,8 +98,7 @@ describe('appRegistry', () => {
     }
   });
 
-  it('marks About, CV, Projects, Contact and Computer as singleton apps', () => {
-    expect(appRegistry['computer' as AppId].singleton).toBe(true);
+  it('marks About, CV, Projects and Contact as singleton apps', () => {
     expect(appRegistry['about' as AppId].singleton).toBe(true);
     expect(appRegistry['contact' as AppId].singleton).toBe(true);
     expect(appRegistry['cv' as AppId].singleton).toBe(true);
