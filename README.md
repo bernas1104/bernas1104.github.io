@@ -14,9 +14,11 @@ The app opens with a **Windows 98-style boot / splash screen** — a full-viewpo
 sky-gradient splash with clouds, a wordmark, and a spinner — that auto-dismisses
 after a short delay (or on click / Enter / Space) and hands off to the **Desktop**.
 It plays once per browser session in production (always in development), respects
-`prefers-reduced-motion`, and can be skipped via a `?skipBoot` URL param.
+`prefers-reduced-motion`, and can be skipped via a `?skipBoot` URL param. The Start
+menu also supports a Windows 98-style shutdown sequence that ends on a
+safe-to-turn-off screen and attempts to close the browser window.
 
-Apps (My Computer, About, CV, Projects, Contact, Terminal) are registered in an
+Apps (About, CV, Projects, and Contact) are registered in an
 **app registry** with code-split (`React.lazy`) components, and the URL hash mirrors
 the focused app — so deep-linking to `/#/projects` opens the Projects window.
 
@@ -32,6 +34,7 @@ The window manager is a Redux-like state layer built on `useReducer` + Context
 - **Taskbar** with a Start button that shows its pressed state while the menu is open, one icon-bearing entry per window (focused entries use the persistent Win98 pressed state; clicking focuses, restores, or minimizes depending on state), and a live clock
 - **Start menu** that opens apps and closes on outside click or Escape
 - **App registry & deep-linking**: apps are declared in `appRegistry` with code-split components; the URL hash mirrors the focused app and a bidirectional route sync keeps the URL and window state in lockstep
+- **Shutdown**: the Start menu runs an `idle` → `shuttingDown` → `off` lifecycle, clearing the boot-session flag, showing the shutdown screen, and attempting `window.close()` as a browser fallback
 - Focus falls back to the next-highest visible window when the focused one is minimized
 
 The Win98 look comes from [98.css](https://jdan.github.io/98.css/) for widget chrome,
@@ -97,7 +100,7 @@ src/
 │   ├── useRouteSync.test.tsx    # Route sync tests (MemoryRouter + vi.fn dispatch)
 │   └── index.ts                 # Barrel: appRegistry, AppRegistry
 ├── features/
-│   ├── boot/                # Boot / splash screen sequence
+│   ├── boot/                # Boot / splash screen and shutdown sequences
 │   │   ├── types.ts                # BootStatus, BootState, BootEnvironment, BootSequenceConfig
 │   │   ├── types.test.ts           # Type-level tests
 │   │   ├── actions.ts              # BootAction union (SKIP | TIMEOUT) + creators
@@ -113,6 +116,14 @@ src/
 │   │   ├── BootScreen.tsx          # Full-viewport splash (clouds + wordmark + spinner)
 │   │   ├── BootScreen.test.tsx
 │   │   ├── boot.css                # Splash styles (consumes --win98-boot-* tokens)
+│   │   ├── shutdown/               # Power-off lifecycle and safe-to-turn-off screen
+│   │   │   ├── actions.ts          # ShutdownAction union + creators
+│   │   │   ├── reducer.ts           # shutdownReducer + initial state
+│   │   │   ├── ShutdownProvider.tsx # Provider and shutdown side effects
+│   │   │   ├── ShutdownScreen.tsx   # Safe-to-turn-off screen
+│   │   │   ├── shutdownScreen.css   # Shutdown screen styles
+│   │   │   ├── useShutdown.ts       # Shutdown context consumer hook
+│   │   │   └── index.ts             # Barrel: public API
 │   │   └── index.ts                # Barrel: public API
 │   ├── desktop/
 │   │   ├── types.ts               # AppId, WindowId, AppDescriptor, WindowInstance, DesktopState
@@ -212,7 +223,7 @@ Code is organized into feature modules under `src/features/<feature>/`. Each fea
 owns its domain model in `types.ts` (with colocated type-level tests in `types.test.ts`)
 and grows components/hooks/utils as needed. Features can nest sub-modules —
 `src/features/desktop/` owns the desktop domain and contains the `windowManager/`
-(state) and `utils/` (pure helpers) sub-modules. `src/features/boot/` (splash sequence)
+(state) and `utils/` (pure helpers) sub-modules. `src/features/boot/` (splash sequence and shutdown lifecycle)
 and `src/features/shell/` (idle placeholder, currently unused) are top-level features.
 `src/apps/`, `src/common/`, and `src/data/` sit alongside `src/features/` as top-level
 modules (app registry/routing, shared primitives, and content data respectively).
@@ -282,15 +293,15 @@ The window manager follows a Redux-like pattern without Redux:
 desktop and the URL:
 
 - **`registry.ts`** / **`index.ts`** define `appRegistry: Record<AppId, AppDescriptor>`
-  — the catalog of apps (`about`, `contact`, `cv`, `projects`, `terminal`).
+  — the catalog of apps (`about`, `contact`, `cv`, `projects`).
   Each entry carries its `IconName`, `defaultSize`, `resizable` / `singleton` flags, and
   a `component: React.lazy(...)` for code-splitting (the lazy component is what `Window`
   renders inside its body). `About`, `CV`, `Projects`, and `Contact` are
-  singletons (reusing an existing window); `Terminal` allows multiple instances.
+  singletons (reusing an existing window).
   Real app content lives under `src/apps/<app>/` — `src/apps/about/AboutApp.tsx`,
   `src/apps/cv/Cv.tsx`, and `src/apps/contact/ContactApp.tsx`, rendered for the
-  `about` / `cv` (both resizable) and `contact` entries — while `projects` and `terminal`
-  still use `PlaceholderApp.tsx` until their content lands.
+  `about` / `cv` (both resizable) and `contact` entries — while `projects` still uses
+  `PlaceholderApp.tsx` until its content lands.
 - **`routes.ts`** builds a `createHashRouter` with a single `/:appId?` route whose
   component is `AppShell` — so the URL hash mirrors the focused app (`/#/projects`,
   `/#/`, …).
@@ -348,6 +359,11 @@ top of the app (it manages the `booting` → `dismissed` status; `App` renders
   loading"`). It skips on click / Enter / Space and dismisses immediately when
   `prefersReducedMotion` is set. `boot.css` consumes the `--win98-boot-*` tokens and
   disables the spinner animation under reduced motion.
+- **`shutdown/`** owns the power-off lifecycle (`idle` → `shuttingDown` → `off`) using
+  a reducer + Context provider. Beginning shutdown clears the boot-session flag and
+  shows the boot screen for `BOOT_MIN_DURATION_MS`; it then renders the
+  safe-to-turn-off screen and attempts `window.close()` after another
+  `BOOT_MIN_DURATION_MS` (which browsers may block for top-level tabs).
 
 ### Shell (idle placeholder)
 
@@ -359,9 +375,11 @@ The shell (`src/features/shell/`) is a placeholder for the post-boot UI, current
   shown after the boot sequence dismissed and has been superseded by the Desktop; the
   import in `App.tsx` is commented out, but the feature is retained for reference.
 
-`src/App.tsx` ties the boot sequence to the desktop: it renders `<BootScreen>` while
-`useBootSequence` reports `booting`, then `<Desktop>` once `dismissed`. The providers
-(`WindowManagerProvider` + `StartMenuProvider`) and the hash router live in
+`src/App.tsx` ties the boot sequence and shutdown lifecycle to the desktop: it renders
+`<BootScreen>` while `useBootSequence` reports `booting` or shutdown is in progress,
+`<ShutdownScreen>` when shutdown is complete, and `<Desktop>` once boot is `dismissed`
+with shutdown `idle`. The providers (`WindowManagerProvider` + `StartMenuProvider` +
+`ShutdownProvider`) and the hash router live in
 `src/AppShell.tsx` / `src/apps/routes.ts` (see [App registry & routing](#app-registry--routing)).
 
 ### Pure helpers
@@ -410,8 +428,9 @@ and the start menu via `useStartMenu`:
   `isStartMenuOpen`. It closes on outside pointerdown (via `useOutsideClick`) and on
   Escape. It renders one item per registered app (each dispatching `OPEN_APP` and
   closing the menu), a separator, then a **Shutdown** item (icon via
-  `iconMap['shutdown']`) that closes the menu without dispatching a window action
-  (real shutdown behaviour is a TODO). It stacks with the `--win98-z-index-start-menu`
+  `iconMap['shutdown']`) that closes the menu and dispatches `beginShutdown()` into
+  the shutdown reducer, starting the boot-screen → shutdown-screen → `window.close()`
+  sequence. It stacks with the `--win98-z-index-start-menu`
   token when no window is focused, otherwise it stacks naturally with the windows.
 - **`Clock.tsx`** is a live 24-hour `HH:MM` clock that aligns its first update to
   the next minute boundary, then refreshes on a 60-second interval
@@ -446,7 +465,8 @@ that `DesktopIcon` / `StartMenu` resolve through `iconMap` in `src/common/icons.
   begins with `'Pixelated MS Sans Serif'`), spacing scale, a z-index scale
   (`--win98-z-index-taskbar`, `--win98-z-index-start-menu`,
   `--win98-z-index-window-loading`), and a boot/splash palette
-  (`--win98-boot-sky-top`, `--win98-boot-sky-bottom`, `--win98-boot-cloud`) as
+  (`--win98-boot-sky-top`, `--win98-boot-sky-bottom`, `--win98-boot-cloud`), and a
+  shutdown palette (`--win98-shutdown-bg`, `--win98-shutdown-text`) as
   `--win98-*` CSS custom properties. Components reference tokens, never raw hex
   colors.
 - **`src/styles/global.css`** adds desktop chrome: body overflow lock, `.desktop`
@@ -460,13 +480,14 @@ that `DesktopIcon` / `StartMenu` resolve through `iconMap` in `src/common/icons.
   token.
 - **Feature-scoped CSS:** some features colocate a stylesheet next to the component
   and import it directly (e.g. `src/features/boot/boot.css`,
-  `src/features/shell/idleScreen.css`). These consume `--win98-*` tokens via `var()`
+  `src/features/boot/shutdown/shutdownScreen.css`, `src/features/shell/idleScreen.css`). These consume `--win98-*` tokens via `var()`
   and are intentionally not mapped into Tailwind's `@theme` — keep them feature-local.
 - **`src/index.css`** maps those tokens into Tailwind v4 via a `@theme` block, so
   utilities like `bg-desktop`, `text-window-text`, and `font-win98` work. Import order
   matters: `98.css` → `tokens.css` → `global.css` → `tailwindcss`. Not every token
   maps to a utility — `--win98-desktop-text`, `--win98-z-index-start-menu`,
-  `--win98-z-index-window-loading`, and the `--win98-boot-*` palette are consumed
+  `--win98-z-index-window-loading`, the `--win98-boot-*` palette, and the
+  `--win98-shutdown-*` palette are consumed
   directly via `var()`.
 
 ## Testing
@@ -514,17 +535,20 @@ that `DesktopIcon` / `StartMenu` resolve through `iconMap` in `src/common/icons.
   production. `usePrefersReducedMotion` tests stub `window.matchMedia`, asserting
   the initial matches value, change-event updates, and listener
   subscribe/unsubscribe.
-- **App tests** (`App.test.tsx`) use fake timers and mock `usePrefersReducedMotion`
-  (and `Desktop`, stubbed as a `role="status"` / `aria-label="BernasOS desktop"` div)
-  to assert the boot→desktop transition: the boot screen renders first, auto-dismisses
-  after `BOOT_MIN_DURATION_MS`, dismisses on click, and dismisses immediately when
-  reduced motion is preferred. `sessionStorage` and `window.history` are reset
-  between tests.
+- **Shutdown tests** (`boot/shutdown/actions.test.ts`, `boot/shutdown/reducer.test.ts`,
+  `boot/shutdown/types.test.ts`, `boot/shutdown/useShutdown.test.tsx`,
+  `boot/shutdown/ShutdownScreen.test.tsx`) cover the `idle → shuttingDown → off`
+  lifecycle, session flag cleanup, timer cleanup, the browser close fallback, and the
+  safe-to-turn-off screen.
+- **App tests** (`App.test.tsx`) use fake timers and mock `usePrefersReducedMotion`,
+  `useShutdown`, and `Desktop` to assert the boot→desktop transition and the shutdown
+  render paths (`shuttingDown` shows the boot screen; `off` shows the shutdown screen).
+  `sessionStorage` and `window.history` are reset between tests.
 - **App registry tests** (`apps/registry.test.ts`) assert the registry contains
-  exactly the expected app ids (`about`, `contact`, `cv`, `projects`,
-  `terminal`), each entry's `id` matches its key, each `component` is a `React.lazy`
+  exactly the expected app ids (`about`, `contact`, `cv`, `projects`), each entry's
+  `id` matches its key, each `component` is a `React.lazy`
   exotic (code-split), each icon resolves in `iconMap`, the singleton flags
-  (About/Contact/CV/Projects singleton, Terminal not), and — via `expect-type`
+  (all registered apps are singletons), and — via `expect-type`
   — that `appRegistry` is exactly `Record<AppId, AppDescriptor>` and `component` is
   `LazyExoticComponent<ComponentType<Record<string, never>>>`.
 - **Route sync tests** (`apps/useRouteSync.test.tsx`) render the hook inside a
