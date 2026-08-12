@@ -61,6 +61,7 @@ src/
 ├── main.tsx                 # React entry point (mounts RouterProvider with the hash router)
 ├── index.css                # CSS entry: 98.css → tokens → global → tailwind
 ├── assets/
+│   ├── avatar.jpeg          # About app avatar
 │   └── icons/               # Desktop/app icon artwork (computer_explorer-*.png, ms_dos-*.png, github.png, …)
 ├── common/
 │   ├── types.ts             # Brand, Position, Size, IconName
@@ -69,12 +70,16 @@ src/
 ├── data/                    # Personal-site content data model + placeholder data
 │   ├── types.ts             # About, Cv, Project, Contact, Skill/SkillGroup, Timeline*, Link, SocialLink, Url, MonthYear
 │   ├── types.test.ts        # Type-level tests (expect-type)
-│   ├── about.ts             # Placeholder About content
+│   ├── about.ts             # Placeholder About content (name/role/summary/avatar)
 │   ├── contact.ts           # Placeholder Contact content
 │   ├── cv.ts                # Placeholder Cv content (about + contact + experience + education + skills)
 │   ├── projects.ts          # Placeholder Project[] content
 │   └── index.ts             # Barrel: export type for types, then data re-exports
 ├── apps/                    # App registry, routing, and route ↔ state sync
+│   ├── about/                    # About app (real content; other apps still placeholder)
+│   │   ├── AboutApp.tsx               # Tree-view bio + avatar, sourced from src/data/about.ts
+│   │   ├── AboutApp.test.tsx
+│   │   └── about.css                  # About app styles (consumes --win98-* tokens)
 │   ├── PlaceholderApp.tsx       # Lazy placeholder rendered until real app content lands
 │   ├── registry.ts              # appRegistry: Record<AppId, AppDescriptor> (lazy components)
 │   ├── registry.test.ts         # Registry shape + per-app assertions (type-level + runtime)
@@ -90,7 +95,7 @@ src/
 │   │   ├── actions.test.ts         # Action creator + type-level union tests
 │   │   ├── reducer.ts              # bootReducer + initialBootState + createInitialBootState
 │   │   ├── reducer.test.ts         # Pure reducer unit tests
-│   │   ├── config.ts               # BOOT_MIN_DURATION_MS, BOOT_PLAYED_SESSION_KEY, MIN_APP_LOADING_MS
+│   │   ├── config.ts               # BOOT_MIN_DURATION_MS, BOOT_PLAYED_SESSION_KEY
 │   │   ├── config.test.ts
 │   │   ├── useBootSequence.ts      # useReducer hook: { status, skip } + shouldPlayBootSequence
 │   │   ├── useBootSequence.test.ts
@@ -117,7 +122,7 @@ src/
 │   │   │   ├── TitleBar.test.tsx
 │   │   │   ├── Taskbar.tsx             # Bottom bar: Start button, window buttons, clock
 │   │   │   ├── Taskbar.test.tsx
-│   │   │   ├── StartMenu.tsx           # Start popup; Shutdown item; closes on outside click / Escape
+│   │   │   ├── StartMenu.tsx           # Start popup; per-app items + Shutdown; closes on outside click / Escape
 │   │   │   ├── StartMenu.test.tsx
 │   │   │   ├── Clock.tsx               # Live 24h HH:MM clock (60s interval)
 │   │   │   └── Clock.test.tsx
@@ -229,7 +234,8 @@ consumed by future UI features, decoupled from the window/desktop domain:
   relationships above. No runtime logic.
 - **`about.ts`** / **`contact.ts`** / **`cv.ts`** / **`projects.ts`** export
   placeholder content (each marked with a `// PLACEHOLDER` comment) to be replaced
-  with real data.
+  with real data; `about.ts` already carries a name/role/summary plus an `avatar: Url`
+  imported from `src/assets/avatar.jpeg`.
 - **`index.ts`** is the barrel: `export type` for the types (required by
   `verbatimModuleSyntax`), then the data re-exports.
 
@@ -270,7 +276,9 @@ desktop and the URL:
   a `component: React.lazy(...)` for code-splitting (the lazy component is what `Window`
   renders inside its body). `About`, `CV`, `Projects`, `Contact`, and `Computer` are
   singletons (reusing an existing window); `Terminal` allows multiple instances.
-  `PlaceholderApp.tsx` is the lazy placeholder rendered until real app content lands.
+  Real app content lives under `src/apps/<app>/` — `src/apps/about/AboutApp.tsx` is
+  the first, rendered for the `about` entry (resizable) — while the other apps still
+  use `PlaceholderApp.tsx` until their content lands.
 - **`routes.ts`** builds a `createHashRouter` with a single `/:appId?` route whose
   component is `AppShell` — so the URL hash mirrors the focused app (`/#/projects`,
   `/#/`, …).
@@ -312,10 +320,8 @@ top of the app (it manages the `booting` → `dismissed` status; `App` renders
   `createInitialBootState(shouldPlay)`. Both actions transition `booting`→`dismissed`
   and no-op (return the same state reference) when already dismissed. Exhaustiveness
   is enforced via `action satisfies never` in the `default` branch.
-- **`config.ts`** exports `BOOT_MIN_DURATION_MS` (2500ms),
-  `BOOT_PLAYED_SESSION_KEY` (`'bernasos:bootPlayed'`), and `MIN_APP_LOADING_MS`
-  (600ms — the minimum loading delay `Window` enforces before revealing an app's
-  lazy-loaded component, via a `.window-loading` overlay).
+- **`config.ts`** exports `BOOT_MIN_DURATION_MS` (2500ms) and
+  `BOOT_PLAYED_SESSION_KEY` (`'bernasos:bootPlayed'`).
 - **`useBootSequence.ts`** is the `useReducer`-backed hook returning
   `{ status, skip }`. The pure helper
   `shouldPlayBootSequence(environment, sessionHasPlayed, skipRequested)` decides
@@ -367,9 +373,8 @@ and the start menu via `useStartMenu`:
   clear focus, renders a `.window-resize-handle` for resizable non-maximized apps,
   and disables geometry CSS transitions while a drag/resize is in progress. The body
   wraps the descriptor's `React.lazy` component (`<props.app.component />`) in
-  `<Suspense>` and enforces a `MIN_APP_LOADING_MS` minimum delay before revealing it,
-  showing a `.window-loading` wait-cursor overlay in the meantime (and as the Suspense
-  fallback).
+  `<Suspense>`, showing a `.window-loading` wait-cursor overlay as the fallback while
+  the lazy component loads.
 - **`TitleBar.tsx`** renders the title and Minimize / Maximize / Restore / Close
   controls (dispatching the matching actions) and drives window dragging via `useDrag`.
   It adds the `inactive` class when unfocused and stops propagation on controls so
@@ -390,11 +395,11 @@ and the start menu via `useStartMenu`:
   returned by `resolveTaskbarAction`.
 - **`StartMenu.tsx`** is the start menu popup (sidebar + items), shown when
   `isStartMenuOpen`. It closes on outside pointerdown (via `useOutsideClick`) and on
-  Escape. Currently its only item is **Shutdown** (icon via `iconMap['shutdown']`),
-  which closes the menu without dispatching a window action (real shutdown behaviour is
-  a TODO); apps are opened through desktop icons / the taskbar instead. It stacks with
-  the `--win98-z-index-start-menu` token when no window is focused, otherwise it stacks
-  naturally with the windows.
+  Escape. It renders one item per registered app (each dispatching `OPEN_APP` and
+  closing the menu), a separator, then a **Shutdown** item (icon via
+  `iconMap['shutdown']`) that closes the menu without dispatching a window action
+  (real shutdown behaviour is a TODO). It stacks with the `--win98-z-index-start-menu`
+  token when no window is focused, otherwise it stacks naturally with the windows.
 - **`Clock.tsx`** is a live 24-hour `HH:MM` clock that aligns its first update to
   the next minute boundary, then refreshes on a 60-second interval
   (`aria-label="Current time"`).
@@ -432,13 +437,14 @@ that `DesktopIcon` / `StartMenu` resolve through `iconMap` in `src/common/icons.
   `--win98-*` CSS custom properties. Components reference tokens, never raw hex
   colors.
 - **`src/styles/global.css`** adds desktop chrome: body overflow lock, `.desktop`
-  background layer, `.window-resize-handle`, the desktop-icon selection styles
-  (`.desktop-icon-container`, `.icon-selected`, `.icon-text-selected`), the taskbar /
-  start-menu / clock chrome (`.taskbar`, `.start-menu`, `.clock`, …), a full-viewport
-  `.window-loading` wait-cursor overlay (stacked via
-  `--win98-z-index-window-loading`, shown by `Window` during the minimum loading delay
-  / `Suspense` fallback), and a global `font-family: var(--win98-font)`. Desktop icon
-  labels use the `--win98-desktop-text` token.
+  background layer, `.window` / `.window-body` flex layout, `.window-resize-handle`,
+  the desktop-icon selection styles (`.desktop-icon-container`, `.icon-selected`,
+  `.icon-text-selected`), the taskbar / start-menu / clock chrome (`.taskbar`,
+  `.start-menu`, `.clock`, …), a full-viewport `.window-loading` wait-cursor overlay
+  (stacked via `--win98-z-index-window-loading`, shown by `Window` as the `Suspense`
+  fallback while a lazy app component loads), and a global
+  `font-family: var(--win98-font)`. Desktop icon labels use the `--win98-desktop-text`
+  token.
 - **Feature-scoped CSS:** some features colocate a stylesheet next to the component
   and import it directly (e.g. `src/features/boot/boot.css`,
   `src/features/shell/idleScreen.css`). These consume `--win98-*` tokens via `var()`
@@ -460,10 +466,10 @@ that `DesktopIcon` / `StartMenu` resolve through `iconMap` in `src/common/icons.
   `StartMenu`) use `@testing-library/react` + `@testing-library/jest-dom`,
   rendering through a `WindowManagerContext.Provider` with a `vi.fn` dispatch to
   assert dispatched actions and rendered chrome — the provider is required only
-  for components that consume that context. `Window` tests are async and use fake
-  timers (`beforeEach`/`afterEach`), advancing `MIN_APP_LOADING_MS` before assertions
-  because `Window` enforces a minimum loading delay and wraps its body in `Suspense`
-  (rendering the descriptor's `lazy` component, not `children`). `Desktop` tests mock
+  for components that consume that context. `Window` tests are async (the app content
+  comes from the descriptor's `lazy` component, not `children`) and assert the
+  `.window-loading` overlay shows only while the lazy component resolves — no fake
+  timers or minimum-loading delay. `Desktop` tests mock
   `Window` to avoid that Suspense/timer machinery. `Desktop`, `Taskbar`, and
   `StartMenu` tests additionally wrap in a `StartMenuContext.Provider`. `DesktopIcon`
   tests assert the 32×32 `iconMap`-sourced artwork, selection, and keyboard open.
@@ -512,8 +518,8 @@ that `DesktopIcon` / `StartMenu` resolve through `iconMap` in `src/common/icons.
   restore; unknown `appId` → no dispatch) and state → route (opening an app navigates
   to `/<appId>`, closing the last window returns to `/`, focus switching updates the
   path).
-- **Boot config tests** (`boot/config.test.ts`) assert `BOOT_MIN_DURATION_MS`,
-  `BOOT_PLAYED_SESSION_KEY`, and `MIN_APP_LOADING_MS` (600ms).
+- **Boot config tests** (`boot/config.test.ts`) assert `BOOT_MIN_DURATION_MS` and
+  `BOOT_PLAYED_SESSION_KEY`.
 - **Type-level tests** use `expect-type` for compile-time assertions (no runtime logic).
 - **Action creator tests** (`windowManager/actions.test.ts`, `boot/actions.test.ts`)
   assert each creator's output and, via `expect-type`, that every creator returns a
