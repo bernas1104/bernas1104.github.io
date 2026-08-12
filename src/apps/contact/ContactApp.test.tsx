@@ -42,18 +42,21 @@ describe('ContactApp', () => {
     expect(getByRole('button', { name: 'Copied!' })).toBeInTheDocument();
   });
 
-  it('does not throw when clipboard permission is denied', async () => {
+  it('falls back to execCommand when clipboard permission is denied', async () => {
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
       value: { writeText: vi.fn().mockRejectedValue(new Error('denied')) },
     });
+    const execCommand = vi.fn().mockReturnValue(true);
+    document.execCommand = execCommand;
     const { getByRole } = render(<ContactApp />);
 
     expect(() =>
       fireEvent.click(getByRole('button', { name: 'Copy email' })),
     ).not.toThrow();
     await waitFor(() =>
-      expect(getByRole('button', { name: 'Copy email' })).toBeInTheDocument(),
+      expect(getByRole('button', { name: 'Copied!' })).toBeInTheDocument(),
     );
+    expect(execCommand).toHaveBeenCalledWith('copy');
   });
 });

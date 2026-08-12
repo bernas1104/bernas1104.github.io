@@ -80,6 +80,11 @@ src/
 │   │   ├── AboutApp.tsx               # Tree-view bio + avatar, sourced from src/data/about.ts
 │   │   ├── AboutApp.test.tsx
 │   │   └── about.css                  # About app styles (consumes --win98-* tokens)
+│   ├── contact/                   # Contact app (real content)
+│   │   ├── ContactApp.tsx             # Email/location + socials, sourced from src/data/contact.ts
+│   │   ├── ContactApp.test.tsx
+│   │   ├── CopyEmailButton.tsx        # Copy-to-clipboard email button with fallback
+│   │   └── contact.css                # Contact app styles (consumes --win98-* tokens)
 │   ├── cv/                        # CV app (real content)
 │   │   ├── Cv.tsx                    # Fieldset-based CV layout, sourced from src/data/cv.ts
 │   │   ├── Cv.test.tsx
