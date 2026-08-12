@@ -1,0 +1,17 @@
+.about-app-container {
+  display: flex;
+  flex-direction: row;
+  gap: var(--win98-space-4);
+
+  .tree-view {
+    flex: 2;
+    max-width: 80%;
+  }
+
+  img {
+    flex: 1;
+    max-height: 100%;
+    object-fit: contain;
+    align-self: flex-start;
+  }
+}

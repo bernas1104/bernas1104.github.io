@@ -3,11 +3,12 @@ import { useOutsideClick } from '@/features/desktop/hooks/useOutsideClick.ts';
 import { useStartMenu } from '@/features/desktop/hooks/useStartMenu.ts';
 import { useWindowManager } from '@/features/desktop/windowManager/index.ts';
 import { iconMap } from '@/common/icons.ts';
+import { appRegistry } from '@/apps/index.ts';
 
 export function StartMenu() {
   const ref = useRef<HTMLDivElement | null>(null);
 
-  const { state } = useWindowManager();
+  const { state, dispatch } = useWindowManager();
   const { isStartMenuOpen: isOpen, closeStartMenu } = useStartMenu();
   useOutsideClick(ref, closeStartMenu, true);
 
@@ -40,6 +41,22 @@ export function StartMenu() {
           </div>
         </div>
         <div className="start-menu-content">
+          {Object.values(appRegistry).map((app) => (
+            <button
+              type="button"
+              key={app.id}
+              className="start-menu-item"
+              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                e.stopPropagation();
+                dispatch({ type: 'OPEN_APP', app });
+                closeStartMenu();
+              }}
+            >
+              <img src={iconMap[app.icon]} alt={app.title} />
+              <span>{app.title}</span>
+            </button>
+          ))}
+          <hr />
           <button
             type="button"
             className="start-menu-item"

@@ -7,8 +7,6 @@
 /* Firefox scrollbar theming */
 * {
   font-family: var(--win98-font);
-  scrollbar-width: thin;
-  scrollbar-color: var(--win98-button-face) var(--win98-button-shadow);
 }
 
 /* Remove default body margin inherited from 98.css */
@@ -21,6 +19,19 @@ body {
 
 .desktop {
   z-index: -1;
+}
+
+.window {
+  display: flex;
+  flex-direction: column;
+}
+
+.window-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  margin: var(--win98-space-4) var(--win98-space-8) 0;
+  margin-bottom: var(--win98-space-4);
 }
 
 .window-resize-handle {
@@ -169,7 +180,6 @@ body {
   bottom: 28px;
   left: 0;
   width: 200px;
-  height: 300px;
   background-color: var(--win98-window-bg);
   box-shadow:
     inset -1px -1px 0 var(--win98-button-dark-shadow),
@@ -185,7 +195,7 @@ body {
 .start-menu-sidebar {
   position: relative;
   width: 22px;
-  height: 100%;
+  height: inherit;
   background-color: var(--win98-frame);
 }
 
@@ -208,6 +218,16 @@ body {
   flex-direction: column;
   justify-content: flex-end;
   gap: var(--win98-space-4);
+
+  hr {
+    border: none;
+    height: 1px;
+    padding: 1px 0;
+    margin: 0 var(--win98-space-4);
+    box-shadow:
+      inset -1px -1px 0 var(--win98-button-highlight),
+      inset 1px 1px 1px var(--win98-button-dark-shadow);
+  }
 }
 
 .start-menu-item {
@@ -221,6 +241,7 @@ body {
   text-align: inherit;
   cursor: pointer;
   padding: var(--win98-space-4);
+  box-shadow: none;
 
   &:hover {
     background-color: var(--win98-selection-bg);

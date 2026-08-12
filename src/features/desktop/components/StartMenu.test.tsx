@@ -4,12 +4,17 @@ import { StartMenu } from '@/features/desktop/components/StartMenu.tsx';
 import { WindowManagerContext } from '@/features/desktop/windowManager/index.ts';
 import type { WindowAction } from '@/features/desktop/windowManager/index.ts';
 import { StartMenuContext } from '@/features/desktop/StartMenuContext.tsx';
+import { appRegistry } from '@/apps/index.ts';
 import type {
   DesktopState,
   WindowId,
   WindowInstance,
 } from '@/features/desktop/types.ts';
-import { makeWindow, makeWindowId } from '@/features/desktop/testUtils.ts';
+import {
+  makeAppId,
+  makeWindow,
+  makeWindowId,
+} from '@/features/desktop/testUtils.ts';
 
 const makeState = (overrides: Partial<DesktopState> = {}): DesktopState => ({
   windows: new Map<WindowId, WindowInstance>(),
@@ -74,6 +79,13 @@ describe('StartMenu', () => {
     expect((sidebarTitle as HTMLElement).textContent).toContain('OS');
   });
 
+  it('renders a menu item for every registered app', () => {
+    const { getByText } = renderStartMenu();
+    for (const app of Object.values(appRegistry)) {
+      expect(getByText(app.title)).toBeInTheDocument();
+    }
+  });
+
   it('renders the Shutdown menu item with an icon and label', () => {
     const { getByAltText, getByText, container } = renderStartMenu();
     expect(container.querySelector('.start-menu-item')).toBeInTheDocument();
@@ -105,9 +117,28 @@ describe('StartMenu', () => {
     expect(closeStartMenu).not.toHaveBeenCalled();
   });
 
+  it('dispatches OPEN_APP with the app descriptor and closes the menu when an app item is clicked', () => {
+    const about = Object.values(appRegistry).find(
+      (app) => app.id === makeAppId('about'),
+    )!;
+    const { getByText, dispatch, closeStartMenu } = renderStartMenu();
+    const item = getByText(about.title).closest(
+      '.start-menu-item',
+    ) as HTMLElement;
+
+    fireEvent.click(item);
+
+    expect(dispatch).toHaveBeenCalledWith({ type: 'OPEN_APP', app: about });
+    expect(closeStartMenu).toHaveBeenCalledTimes(1);
+  });
+
   it('closes the menu without dispatching a window action when the Shutdown item is clicked', () => {
-    const { container, dispatch, closeStartMenu } = renderStartMenu();
-    fireEvent.click(container.querySelector('.start-menu-item') as HTMLElement);
+    const { getByText, dispatch, closeStartMenu } = renderStartMenu();
+    const shutdownItem = getByText('Shutdown').closest(
+      '.start-menu-item',
+    ) as HTMLElement;
+
+    fireEvent.click(shutdownItem);
 
     expect(dispatch).not.toHaveBeenCalled();
     expect(closeStartMenu).toHaveBeenCalledTimes(1);

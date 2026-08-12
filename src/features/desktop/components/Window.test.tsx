@@ -1,6 +1,6 @@
 import { act, fireEvent, render } from '@testing-library/react';
 import { lazy } from 'react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   Window,
   type WindowProps,
@@ -10,7 +10,6 @@ import {
   WindowManagerContext,
 } from '@/features/desktop/windowManager/index.ts';
 import type { WindowAction } from '@/features/desktop/windowManager/index.ts';
-import { MIN_APP_LOADING_MS } from '@/features/boot/config.ts';
 import {
   makeApp,
   makeAppId,
@@ -18,7 +17,7 @@ import {
   makeWindowId,
 } from '@/features/desktop/testUtils.ts';
 
-async function renderWindow(props: WindowProps, advanceLoading = true) {
+async function renderWindow(props: WindowProps, flush = true) {
   const dispatch = vi.fn<(action: WindowAction) => void>();
   const utils = render(
     <WindowManagerContext.Provider
@@ -27,24 +26,13 @@ async function renderWindow(props: WindowProps, advanceLoading = true) {
       <Window {...props} />
     </WindowManagerContext.Provider>,
   );
-  if (advanceLoading) {
-    await act(async () => {
-      vi.advanceTimersByTime(MIN_APP_LOADING_MS);
-    });
+  if (flush) {
+    await act(async () => {});
   }
   return { ...utils, dispatch };
 }
 
 describe('Window', () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-    vi.restoreAllMocks();
-  });
-
   it('renders nothing when minimized', async () => {
     const app = makeApp({ id: makeAppId('a1') });
     const win = makeWindow({ id: makeWindowId('w1'), state: 'minimized' });
@@ -73,7 +61,7 @@ describe('Window', () => {
     expect(container.querySelector('.window-body')).toBeInTheDocument();
   });
 
-  it('mounts the window immediately and keeps the loading overlay until the minimum time elapses', async () => {
+  it('shows the loading overlay only while the app component is loading', async () => {
     const app = makeApp({ id: makeAppId('a1') });
     const win = makeWindow({ id: makeWindowId('w1'), state: 'open' });
     const { container } = await renderWindow(
@@ -84,15 +72,7 @@ describe('Window', () => {
     expect(container.querySelector('.window-loading')).toBeInTheDocument();
     expect(container.querySelector('.window')).not.toBeInTheDocument();
 
-    await act(async () => {
-      vi.advanceTimersByTime(MIN_APP_LOADING_MS - 1);
-    });
-    expect(container.querySelector('.window-loading')).toBeInTheDocument();
-    expect(container.querySelector('.window')).toBeInTheDocument();
-
-    await act(async () => {
-      vi.advanceTimersByTime(1);
-    });
+    await act(async () => {});
     expect(container.querySelector('.window-loading')).not.toBeInTheDocument();
     expect(container.querySelector('.window')).toBeInTheDocument();
   });
