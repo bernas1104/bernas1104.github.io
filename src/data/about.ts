@@ -1,7 +1,6 @@
 import type { About, Url } from '@/data/types.ts';
 import avatar from '@/assets/avatar.jpeg';
 
-// PLACEHOLDER
 export const about: About = {
   name: 'Bernardo Costa Nascimento',
   role: 'Fullstack Engineer',
