@@ -1,4 +1,4 @@
-import { useState, useRef, Suspense, useEffect } from 'react';
+import { useState, useRef, Suspense } from 'react';
 import { useResize } from '@/features/desktop/hooks/useResize.ts';
 import type {
   AppDescriptor,
@@ -7,7 +7,6 @@ import type {
 } from '@/features/desktop/types.ts';
 import { TitleBar } from '@/features/desktop/components/TitleBar.tsx';
 import { useWindowManager } from '@/features/desktop/windowManager/index.ts';
-import { MIN_APP_LOADING_MS } from '@/features/boot/config.ts';
 
 export type WindowProps = {
   app: AppDescriptor;
@@ -19,7 +18,6 @@ export function Window(props: WindowProps) {
   const ref = useRef<HTMLDivElement | null>(null);
 
   const [isDragging, setIsDragging] = useState(false);
-  const [minElapsed, setMinElapsed] = useState(false);
 
   const { dispatch } = useWindowManager();
   const { onPointerDown } = useResize(
@@ -31,60 +29,49 @@ export function Window(props: WindowProps) {
     setIsDragging,
   );
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setMinElapsed(true);
-    }, MIN_APP_LOADING_MS);
-
-    return () => clearTimeout(timer);
-  }, []);
-
   const isMaximized = props.window.state === 'maximized';
 
   if (props.window.state === 'minimized') return null;
 
   return (
-    <>
-      <Suspense fallback={<div className="window-loading" />}>
-        <div
-          className="window"
-          onPointerDown={() =>
-            dispatch({ type: 'FOCUS_WINDOW', windowId: props.window.id })
-          }
-          onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}
-          style={{
-            zIndex: props.window.zIndex,
-            position: 'absolute',
-            top: isMaximized ? '0px' : `${props.window.position.y}px`,
-            left: isMaximized ? '0px' : `${props.window.position.x}px`,
-            width: isMaximized ? '100%' : `${props.window.size.width}px`,
-            height: isMaximized ? '100%' : `${props.window.size.height}px`,
-            transition: isDragging
-              ? 'none'
-              : 'top 0.2s, left 0.2s, width 0.2s, height 0.2s',
-          }}
-        >
-          <TitleBar
-            title={props.window.title}
-            window={props.window}
-            isFocused={props.window.id === props.focusedWindowId}
-            onDragStateChange={setIsDragging}
-          />
-          <div className="window-body">
-            <props.app.component />
-          </div>
-
-          {props.app.resizable && !isMaximized && (
-            <div
-              ref={ref}
-              className="window-resize-handle"
-              onPointerDown={(event) => onPointerDown(event)}
-              aria-label="Resize handle"
-            />
-          )}
+    <Suspense fallback={<div className="window-loading" />}>
+      <div
+        className="window"
+        onPointerDown={() =>
+          dispatch({ type: 'FOCUS_WINDOW', windowId: props.window.id })
+        }
+        onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}
+        style={{
+          zIndex: props.window.zIndex,
+          position: 'absolute',
+          top: isMaximized ? '0px' : `${props.window.position.y}px`,
+          left: isMaximized ? '0px' : `${props.window.position.x}px`,
+          width: isMaximized ? '100%' : `${props.window.size.width}px`,
+          height: isMaximized ? '100%' : `${props.window.size.height}px`,
+          transition: isDragging
+            ? 'none'
+            : 'top 0.2s, left 0.2s, width 0.2s, height 0.2s',
+        }}
+      >
+        <TitleBar
+          title={props.window.title}
+          window={props.window}
+          isFocused={props.window.id === props.focusedWindowId}
+          onDragStateChange={setIsDragging}
+        />
+        <div className="window-body">
+          <props.app.component />
         </div>
-      </Suspense>
-      {!minElapsed && <div className="window-loading" />}
-    </>
+
+        {props.app.resizable && !isMaximized && (
+          <div
+            ref={ref}
+            className="window-resize-handle"
+            onPointerDown={(event) => onPointerDown(event)}
+            aria-label="Resize handle"
+          />
+        )}
+      </div>
+    </Suspense>
   );
 }

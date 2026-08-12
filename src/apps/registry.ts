@@ -19,9 +19,9 @@ export const appRegistry: AppRegistry = {
     title: 'About',
     icon: 'about',
     defaultSize: { width: 400, height: 300 },
-    resizable: false,
+    resizable: true,
     singleton: true,
-    component: React.lazy(() => import('@/apps/PlaceholderApp.tsx')),
+    component: React.lazy(() => import('@/apps/about/AboutApp.tsx')),
   },
   ['contact' as AppId]: {
     id: 'contact' as AppId,
