@@ -5,9 +5,16 @@ function formatPeriod(startDate: string, endDate?: string) {
   return `${startDate} - ${endDate ?? 'Present'}`;
 }
 
+function skillGroupId(category: string) {
+  return `skill-${category.replace(/\s+/g, '')}`;
+}
+
 export default function Cv() {
   return (
     <main className="cv-content">
+      <button type="button" className="cv-print" onClick={() => window.print()}>
+        Print
+      </button>
       <section aria-labelledby="cv-about-heading">
         <fieldset>
           <legend id="cv-about-heading">
@@ -127,9 +134,9 @@ export default function Cv() {
             {cv.skills.map((group) => (
               <section
                 key={group.category}
-                aria-labelledby={`skill-${group.category}`}
+                aria-labelledby={skillGroupId(group.category)}
               >
-                <h3 id={`skill-${group.category}`}>{group.category}</h3>
+                <h3 id={skillGroupId(group.category)}>{group.category}</h3>
                 <ul>
                   {group.skills.map((skill) => (
                     <li key={skill.name}>

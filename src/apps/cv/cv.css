@@ -101,3 +101,32 @@
     flex-direction: column-reverse;
   }
 }
+
+@media print {
+  .taskbar,
+  .start-menu,
+  .desktop-icon-container,
+  .title-bar,
+  .window-resize-handle,
+  .window-loading,
+  .cv-print {
+    display: none;
+  }
+
+  body {
+    overflow: visible;
+  }
+
+  .window {
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    overflow: visible;
+    border: 0;
+  }
+
+  .window-body {
+    overflow: visible;
+    margin: 0;
+  }
+}

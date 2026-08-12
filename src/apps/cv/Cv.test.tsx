@@ -1,5 +1,5 @@
-import { render } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import { cv } from '@/data/cv.ts';
 import Cv from '@/apps/cv/Cv.tsx';
 
@@ -62,5 +62,15 @@ describe('Cv', () => {
         expect(getAllByText(skill.name, { exact: false })).not.toHaveLength(0);
       }
     }
+  });
+
+  it('prints the CV when the Print control is activated', () => {
+    const printSpy = vi.spyOn(window, 'print').mockImplementation(() => {});
+    const { getByRole } = render(<Cv />);
+
+    fireEvent.click(getByRole('button', { name: 'Print' }));
+
+    expect(printSpy).toHaveBeenCalledTimes(1);
+    printSpy.mockRestore();
   });
 });
