@@ -24,6 +24,7 @@ body {
 .window {
   display: flex;
   flex-direction: column;
+  font-size: 0.8rem;
 }
 
 .window-body {
@@ -121,8 +122,23 @@ body {
 .taskbar-button {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: var(--win98-space-4);
   width: 100px;
+  min-width: 100px;
+  padding: 0 var(--win98-space-4);
+
+  img {
+    width: 16px;
+    height: 16px;
+    flex: none;
+  }
+
+  &.focused {
+    box-shadow:
+      inset -1px -1px 0 var(--win98-button-highlight),
+      inset 1px 1px 1px var(--win98-button-shadow);
+  }
 }
 
 .start-menu-button {
@@ -136,6 +152,12 @@ body {
   cursor: pointer;
   display: flex;
   align-items: center;
+
+  &.active {
+    box-shadow:
+      inset -1px -1px 0 var(--win98-button-highlight),
+      inset 1px 1px 1px var(--win98-button-shadow);
+  }
 
   img {
     width: 16px;

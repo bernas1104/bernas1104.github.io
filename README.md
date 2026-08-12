@@ -29,7 +29,7 @@ The window manager is a Redux-like state layer built on `useReducer` + Context
 - **Maximize toggle** (open ⇄ maximized)
 - **Desktop icons**: click to select (Win98 dashed highlight), double-click or Enter to open an app
 - **Move / resize** windows (resize enforces a minimum size)
-- **Taskbar** with a Start button, one entry per window (click focuses, restores, or minimizes depending on state), and a live clock
+- **Taskbar** with a Start button that shows its pressed state while the menu is open, one icon-bearing entry per window (focused entries use the persistent Win98 pressed state; clicking focuses, restores, or minimizes depending on state), and a live clock
 - **Start menu** that opens apps and closes on outside click or Escape
 - **App registry & deep-linking**: apps are declared in `appRegistry` with code-split components; the URL hash mirrors the focused app and a bidirectional route sync keeps the URL and window state in lockstep
 - Focus falls back to the next-highest visible window when the focused one is minimized
@@ -402,9 +402,10 @@ and the start menu via `useStartMenu`:
   double-click or Enter dispatches `OPEN_APP`. Icon artwork lives in
   `src/assets/icons/` and is mapped through `src/common/icons.ts`.
 - **`Taskbar.tsx`** is the fixed bottom bar: a Start button that toggles the start
-  menu, one button per window (sorted by ascending z-index, focused window gets the
-  `focused` class), and a `Clock`. Clicking a window button dispatches the action
-  returned by `resolveTaskbarAction`.
+  menu and gets the `active` class while it is open, one icon-bearing button per
+  window sorted by ascending z-index, and a `Clock`. The focused window button gets
+  the `focused` class and persistent Win98 pressed styling. Clicking a window button
+  dispatches the action returned by `resolveTaskbarAction`.
 - **`StartMenu.tsx`** is the start menu popup (sidebar + items), shown when
   `isStartMenuOpen`. It closes on outside pointerdown (via `useOutsideClick`) and on
   Escape. It renders one item per registered app (each dispatching `OPEN_APP` and

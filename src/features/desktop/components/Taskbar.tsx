@@ -1,18 +1,21 @@
 import { Clock } from '@/features/desktop/components/Clock.tsx';
 import { useWindowManager } from '@/features/desktop/windowManager/index.ts';
 import WindowsStartMenuIcon from '@/assets/icons/windows-4.png';
+import { iconMap } from '@/common/icons.ts';
 import { useStartMenu } from '@/features/desktop/hooks/useStartMenu.ts';
 import { resolveTaskbarAction } from '@/features/desktop/utils/index.ts';
+import { appRegistry } from '@/apps/index.ts';
 
 export function Taskbar() {
   const { state, dispatch } = useWindowManager();
-  const { onStartMenuToggle } = useStartMenu();
+  const { isStartMenuOpen, onStartMenuToggle } = useStartMenu();
 
   return (
     <div className="taskbar">
       <div
-        className="start-menu-button"
         role="button"
+        aria-expanded={isStartMenuOpen}
+        className={`start-menu-button ${isStartMenuOpen ? 'active' : ''}`}
         onClick={() => onStartMenuToggle()}
         onPointerDown={(e: React.PointerEvent<HTMLDivElement>) =>
           e.stopPropagation()
@@ -25,6 +28,8 @@ export function Taskbar() {
         {Array.from(state.windows.values())
           .sort((a, b) => a.zIndex - b.zIndex)
           .map((window) => {
+            const app = appRegistry[window.appId];
+
             return (
               <button
                 key={window.id}
@@ -40,6 +45,7 @@ export function Taskbar() {
                   dispatch(resolveTaskbarAction(window, state.focusedWindowId));
                 }}
               >
+                {app && <img src={iconMap[app.icon]} alt="" />}
                 {window.title}
               </button>
             );

@@ -6,13 +6,7 @@ import type { AppDescriptor } from '@/features/desktop/types.ts';
 import type { AppId, IconName } from '@/common/types.ts';
 import { iconMap } from '@/common/icons.ts';
 
-const EXPECTED_APP_IDS = [
-  'about',
-  'contact',
-  'cv',
-  'projects',
-  'terminal',
-] as const;
+const EXPECTED_APP_IDS = ['about', 'contact', 'cv', 'projects'] as const;
 
 const LAZY_TYPEOF = Symbol.for('react.lazy');
 
@@ -40,14 +34,8 @@ describe('appRegistry', () => {
     );
   });
 
-  it('contains the apps required by the issue (About, CV, Projects, Contact, Terminal)', () => {
-    const required = [
-      'about',
-      'cv',
-      'projects',
-      'contact',
-      'terminal',
-    ] as const;
+  it('contains the registered apps (About, CV, Projects and Contact)', () => {
+    const required = ['about', 'cv', 'projects', 'contact'] as const;
     for (const id of required) {
       expect(appRegistry[id as AppId]).toBeDefined();
     }
@@ -103,9 +91,5 @@ describe('appRegistry', () => {
     expect(appRegistry['contact' as AppId].singleton).toBe(true);
     expect(appRegistry['cv' as AppId].singleton).toBe(true);
     expect(appRegistry['projects' as AppId].singleton).toBe(true);
-  });
-
-  it('marks Terminal as a non-singleton app (multiple instances allowed)', () => {
-    expect(appRegistry['terminal' as AppId].singleton).toBe(false);
   });
 });

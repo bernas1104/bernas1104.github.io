@@ -9,7 +9,11 @@ import type {
   WindowId,
   WindowInstance,
 } from '@/features/desktop/types.ts';
-import { makeWindow, makeWindowId } from '@/features/desktop/testUtils.ts';
+import {
+  makeAppId,
+  makeWindow,
+  makeWindowId,
+} from '@/features/desktop/testUtils.ts';
 
 const makeState = (overrides: Partial<DesktopState> = {}): DesktopState => ({
   windows: new Map<WindowId, WindowInstance>(),
@@ -64,6 +68,18 @@ describe('Taskbar', () => {
     expect(getByText('Start')).toBeInTheDocument();
   });
 
+  it('marks the Start button active while the menu is open', () => {
+    const { container } = renderTaskbar(makeState(), {
+      isStartMenuOpen: true,
+      closeStartMenu: vi.fn(),
+      onStartMenuToggle: vi.fn(),
+    });
+    const startButton = container.querySelector('.start-menu-button');
+
+    expect(startButton).toHaveClass('active');
+    expect(startButton).toHaveAttribute('aria-expanded', 'true');
+  });
+
   it('renders no taskbar buttons when there are no windows', () => {
     const { container } = renderTaskbar();
     expect(container.querySelectorAll('.taskbar-button')).toHaveLength(0);
@@ -91,6 +107,21 @@ describe('Taskbar', () => {
     const { getByText } = renderTaskbar(state);
 
     expect(getByText('Notepad')).toBeInTheDocument();
+  });
+
+  it('renders the registered app icon in the taskbar button', () => {
+    const w = makeWindow({
+      id: makeWindowId('w1'),
+      appId: makeAppId('about'),
+    });
+    const state = makeState({ windows: new Map([[w.id, w]]) });
+
+    const { container } = renderTaskbar(state);
+
+    expect(container.querySelector('.taskbar-button img')).toHaveAttribute(
+      'alt',
+      '',
+    );
   });
 
   it('renders buttons ordered by ascending zIndex', () => {
