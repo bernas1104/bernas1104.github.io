@@ -66,7 +66,7 @@ describe('Desktop', () => {
 
   it('renders a desktop icon', () => {
     const { getByRole } = renderDesktop();
-    expect(getByRole('button', { name: 'My Computer' })).toBeInTheDocument();
+    expect(getByRole('button', { name: 'Curriculum' })).toBeInTheDocument();
   });
 
   it('renders no windows when the state is empty', () => {
@@ -218,14 +218,14 @@ describe('Desktop', () => {
 
   it('does not dispatch CLEAR_FOCUS when a desktop icon is clicked', () => {
     const { getByRole, dispatch } = renderDesktop();
-    fireEvent.click(getByRole('button', { name: 'My Computer' }));
+    fireEvent.click(getByRole('button', { name: 'Curriculum' }));
 
     expect(dispatch).not.toHaveBeenCalledWith({ type: 'CLEAR_FOCUS' });
   });
 
   it('uses the app from the registry to render the desktop icon', () => {
     const { getByRole } = renderDesktop();
-    const icon = getByRole('button', { name: 'My Computer' });
+    const icon = getByRole('button', { name: 'Curriculum' });
     expect(icon).toBeInTheDocument();
     expect(icon.tagName).toBe('DIV');
   });
