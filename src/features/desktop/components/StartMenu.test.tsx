@@ -4,14 +4,17 @@ import { StartMenu } from '@/features/desktop/components/StartMenu.tsx';
 import { WindowManagerContext } from '@/features/desktop/windowManager/index.ts';
 import type { WindowAction } from '@/features/desktop/windowManager/index.ts';
 import { StartMenuContext } from '@/features/desktop/StartMenuContext.tsx';
-import { appRegistry } from '@/apps/registry.ts';
-import type { AppId } from '@/common/types.ts';
+import { appRegistry } from '@/apps/index.ts';
 import type {
   DesktopState,
   WindowId,
   WindowInstance,
 } from '@/features/desktop/types.ts';
-import { makeWindow, makeWindowId } from '@/features/desktop/testUtils.ts';
+import {
+  makeAppId,
+  makeWindow,
+  makeWindowId,
+} from '@/features/desktop/testUtils.ts';
 
 const makeState = (overrides: Partial<DesktopState> = {}): DesktopState => ({
   windows: new Map<WindowId, WindowInstance>(),
@@ -115,7 +118,9 @@ describe('StartMenu', () => {
   });
 
   it('dispatches OPEN_APP with the app descriptor and closes the menu when an app item is clicked', () => {
-    const about = appRegistry['about' as AppId];
+    const about = Object.values(appRegistry).find(
+      (app) => app.id === makeAppId('about'),
+    )!;
     const { getByText, dispatch, closeStartMenu } = renderStartMenu();
     const item = getByText(about.title).closest(
       '.start-menu-item',

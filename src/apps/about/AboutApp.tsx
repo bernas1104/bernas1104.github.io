@@ -1,4 +1,5 @@
-import { about } from '@/data/about.ts';
+import { about } from '@/data/index.ts';
+import defaultAvatar from '@/assets/default-avatar.png';
 import '@/apps/about/about.css';
 
 export default function AboutApp() {
@@ -14,7 +15,7 @@ export default function AboutApp() {
         </ul>
       </ul>
       <img
-        src={about.avatar ?? ''}
+        src={about.avatar ?? defaultAvatar}
         alt={about.name + ' photo'}
         width="100"
         height="auto"

@@ -3,7 +3,7 @@ import { useOutsideClick } from '@/features/desktop/hooks/useOutsideClick.ts';
 import { useStartMenu } from '@/features/desktop/hooks/useStartMenu.ts';
 import { useWindowManager } from '@/features/desktop/windowManager/index.ts';
 import { iconMap } from '@/common/icons.ts';
-import { appRegistry } from '@/apps/registry.ts';
+import { appRegistry } from '@/apps/index.ts';
 
 export function StartMenu() {
   const ref = useRef<HTMLDivElement | null>(null);
@@ -43,7 +43,7 @@ export function StartMenu() {
         <div className="start-menu-content">
           {Object.values(appRegistry).map((app) => (
             <button
-              role="button"
+              type="button"
               key={app.id}
               className="start-menu-item"
               onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
@@ -58,7 +58,7 @@ export function StartMenu() {
           ))}
           <hr />
           <button
-            role="button"
+            type="button"
             className="start-menu-item"
             onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
               e.stopPropagation();

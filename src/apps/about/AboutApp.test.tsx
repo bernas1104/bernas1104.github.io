@@ -8,7 +8,14 @@ describe('AboutApp', () => {
     const { getByText } = render(<AboutApp />);
     expect(getByText(about.name)).toBeInTheDocument();
     expect(getByText(about.role)).toBeInTheDocument();
-    expect(getByText(about.summary)).toBeInTheDocument();
+    expect(
+      getByText(
+        (_, node) =>
+          node !== null &&
+          node.textContent === about.summary &&
+          node.childElementCount === 0,
+      ),
+    ).toBeInTheDocument();
   });
 
   it('does not hardcode bio text (all visible copy matches src/data/about.ts)', () => {
